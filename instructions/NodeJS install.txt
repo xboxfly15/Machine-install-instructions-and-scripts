@@ -1,0 +1,7 @@
+// UPDATED 23.04.2020
+// Download and install NodeJS 14
+curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+// If you're updating from an old version, node -v and nodejs -v may show different versions
+// the reason it was like this FOR ME was because /usr/local/bin/node existed which was an old NodeJS binary, just delete it and relog SSH and they will show the same version

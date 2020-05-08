@@ -1,0 +1,26 @@
+// UPDATED 30.04.2020
+// Looks for "string" inside of all files inside of "/path/"
+grep -rnw '/path/' -e 'string'
+
+// Gets the size of files inside of "/path/", add "| sort -h" to the end for it to sort the output by largest file at the bottom
+du -sh /path/
+
+// Useful screen commands
+// Start session
+screen -S [screenname]
+// List sessions
+screen -ls
+// Detach from session
+Ctrl + A then press D
+// Attach to session
+screen -r [screenname]
+// To kill a session attached
+Ctrl + A then type :quit
+// To kill a session deattached
+screen -X -S [screenname] quit
+// To scroll in a session while attached
+Ctrl + A then press ESC, then use arrow keys for up and down or mouse scroll wheel, hit Q or ESC to stop scrolling
+// Ececute Minecraft command detached
+screen -S [screenname] -X eval 'stuff "command\015"'
+// Writes everything in the scroll buffer to a file, file location is whereever you started the screen or attached to the screeen
+Ctrl + A then type :hardcopy -h [filename].txt

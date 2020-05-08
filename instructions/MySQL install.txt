@@ -1,0 +1,322 @@
+// UPDATED 02.04.2020
+/// 1. Install Nginx and PHP - REFER TO NGINX INSTALL.TXT IF UNSURE 
+
+/// 2. Install MySQL 8
+cd ~
+// Visit https://dev.mysql.com/downloads/repo/apt/ and get latest version
+// At the time of writing 0.8.15-1 is the latest
+curl -OL https://dev.mysql.com/get/mysql-apt-config_0.8.15-1_all.deb
+sudo dpkg -i mysql-apt-config*
+// Make sure MySQL server and tools are selected with latest version
+
+sudo apt update
+rm mysql-apt-config*
+sudo apt install mysql-server -y
+
+// Create a password for the MySQL root account
+
+// Select legacy password
+
+systemctl status mysql
+// Check its installed and online
+
+mysql --version
+// Should show version 8
+
+mysql_secure_installation
+// Settings: n , n , y , n , y , y
+
+
+// EDIT /etc/mysql/mysql.cnf
+// Add or change if already exists
+[mysqld]
+default_authentication_plugin = mysql_native_password
+skip_name_resolve=1
+max_connections = 400
+port = 3306
+port_open_timeout = 5
+max_user_connections = 200
+net_retry_count = 10
+bind_address = *
+safe_user_create
+slow_query_log = 1
+slow_query_log_file = "/var/log/mysql/slow-queries.log"
+log_queries_not_using_indexes
+binlog_rows_query_log_events
+log_error = "/var/log/mysql/error.log"
+#general_log
+#general_log_file = "/var/log/mysql/host_name.log"
+
+
+/// (OPTIONAL) FOR OVH USERS TO RELOCATE MYSQL DATABSES TO ADDITIONAL DRIVE:
+// Make sure MySQL is stopped
+systemctl stop mysql
+
+mkdir -p /mnt/sdb
+mkfs.ext4 /dev/sdb
+mount /dev/sdb /mnt/sdb
+
+// Confirm sdb is listed with a size of 50G
+df -h
+
+mkdir -p /mnt/sdb/mysql
+
+// EDIT /etc/apparmor.d/usr.sbin.mysqld
+// CHANGE:
+# Allow data dir access
+  /var/lib/mysql/ r,
+  /var/lib/mysql/** rwk,
+// TO:
+# Allow data dir access
+  /mnt/sdb/mysql/ r,
+  /mnt/sdb/mysql/** rwk,
+
+// EDIT /etc/mysql/mysql.cnf
+// Add to [mysqld]
+datadir = /mnt/sdb/mysql
+
+mv /var/lib/mysql/ /mnt/sdb/mysql/
+
+reboot now
+mount /dev/sdb /mnt/sdb
+
+cd /mnt/sdb
+chown mysql:mysql -R mysql
+chmod 700 mysql -R
+systemctl start mysql
+
+// If you restart the VPS run these commands:
+mount /dev/sdb /mnt/sdb
+systemctl start mysql
+
+/// END: OVH USERS TO RELOCATE MYSQL DATABSES TO ADDITIONAL DRIVE
+
+
+/// 3. Prep for PHPMyAdmin
+// Login to MySQL
+mysql -u root -p
+ALTER USER root IDENTIFIED WITH mysql_native_password BY 'MYSQL_ROOT_PASSWORD';
+
+CREATE USER 'phpmyadmin'@'%' IDENTIFIED BY 'PHPMYADMIN_PASSWORD';
+GRANT ALL PRIVILEGES ON *.* To 'phpmyadmin'@'%';
+ALTER USER phpmyadmin IDENTIFIED WITH mysql_native_password BY 'PHPMYADMIN_PASSWORD';
+
+UPDATE mysql.user SET host = '%' WHERE user = 'root';
+
+// Exit MySQL
+exit;
+
+/// 4. Download and install PHPMyAdmin
+
+cd ~
+
+// Visit phpmyadmin.net and get latest English only version
+curl -OL https://files.phpmyadmin.net/phpMyAdmin/5.0.2/phpMyAdmin-5.0.2-english.tar.gz
+tar xvzf phpMyAdmin-5.0.2-english.tar.gz
+mkdir /etc/phpmyadmin
+mv phpMyAdmin-5.0.2-english/* /etc/phpmyadmin/
+rm -R phpMyAdmin-*
+Set www-data folder owner for /etc/phpmyadmin/ - REFER TO NGINX INSTALL IF UNSURE
+
+// Setup phpmyadmin nginx website file & upload/install SSL
+// Enable site with SITE_FILE_NAME: "mysql.galaxymc.host" - REFER TO NGINX INSTALL IF UNSURE
+
+chown www-data:www-data -R /etc/phpmyadmin/
+cp /etc/phpmyadmin/config.sample.inc.php /etc/phpmyadmin/config.inc.php
+
+// EDIT /etc/phpmyadmin/config.inc.php
+$cfg['blowfish_secret'] = 'RANDOM_33_LENGTH_STRING_WITH_SYMBOLS_NUMBERS_LETTERS_AND_NUMBERS';
+
+/**
+ * First server
+ */
+$i++;
+$cfg['Servers'][$i]['auth_type'] = 'cookie';
+$cfg['Servers'][$i]['host'] = 'localhost';
+$cfg['Servers'][$i]['compress'] = false;
+$cfg['Servers'][$i]['AllowNoPassword'] = false;
+$cfg['Servers'][$i]['verbose'] = 'United Kingdom';
+$cfg['Servers'][$i]['controluser'] = 'pma';
+$cfg['Servers'][$i]['controlpass'] = 'UK_MYSQL_PMA_USER_PASSWORD';
+$cfg['Servers'][$i]['pmadb'] = 'phpmyadmin';
+$cfg['Servers'][$i]['bookmarktable'] = 'pma__bookmark';
+$cfg['Servers'][$i]['relation'] = 'pma__relation';
+$cfg['Servers'][$i]['table_info'] = 'pma__table_info';
+$cfg['Servers'][$i]['table_coords'] = 'pma__table_coords';
+$cfg['Servers'][$i]['pdf_pages'] = 'pma__pdf_pages';
+$cfg['Servers'][$i]['column_info'] = 'pma__column_info';
+$cfg['Servers'][$i]['history'] = 'pma__history';
+$cfg['Servers'][$i]['table_uiprefs'] = 'pma__table_uiprefs';
+$cfg['Servers'][$i]['tracking'] = 'pma__tracking';
+$cfg['Servers'][$i]['userconfig'] = 'pma__userconfig';
+$cfg['Servers'][$i]['recent'] = 'pma__recent';
+$cfg['Servers'][$i]['favorite'] = 'pma__favorite';
+$cfg['Servers'][$i]['users'] = 'pma__users';
+$cfg['Servers'][$i]['usergroups'] = 'pma__usergroups';
+$cfg['Servers'][$i]['navigationhiding'] = 'pma__navigationhiding';
+$cfg['Servers'][$i]['savedsearches'] = 'pma__savedsearches';
+$cfg['Servers'][$i]['central_columns'] = 'pma__central_columns';
+$cfg['Servers'][$i]['designer_settings'] = 'pma__designer_settings';
+$cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
+/**
+ * Second server
+ */
+$i++;
+$cfg['Servers'][$i]['auth_type'] = 'cookie';
+$cfg['Servers'][$i]['host'] = 'ca.mysql.galaxymc.host';
+$cfg['Servers'][$i]['connect_type'] = 'tcp';
+$cfg['Servers'][$i]['compress'] = true;
+$cfg['Servers'][$i]['AllowNoPassword'] = false;
+$cfg['Servers'][$i]['verbose'] = 'Canada';
+$cfg['Servers'][$i]['controluser'] = 'phpmyadmin';
+$cfg['Servers'][$i]['controlpass'] = 'CA_MYSQL_PHPMYADMIN_USER_PASSWORD';
+$cfg['Servers'][$i]['pmadb'] = 'phpmyadmin';
+$cfg['Servers'][$i]['bookmarktable'] = 'pma__bookmark';
+$cfg['Servers'][$i]['relation'] = 'pma__relation';
+$cfg['Servers'][$i]['table_info'] = 'pma__table_info';
+$cfg['Servers'][$i]['table_coords'] = 'pma__table_coords';
+$cfg['Servers'][$i]['pdf_pages'] = 'pma__pdf_pages';
+$cfg['Servers'][$i]['column_info'] = 'pma__column_info';
+$cfg['Servers'][$i]['history'] = 'pma__history';
+$cfg['Servers'][$i]['table_uiprefs'] = 'pma__table_uiprefs';
+$cfg['Servers'][$i]['tracking'] = 'pma__tracking';
+$cfg['Servers'][$i]['userconfig'] = 'pma__userconfig';
+$cfg['Servers'][$i]['recent'] = 'pma__recent';
+$cfg['Servers'][$i]['favorite'] = 'pma__favorite';
+$cfg['Servers'][$i]['users'] = 'pma__users';
+$cfg['Servers'][$i]['usergroups'] = 'pma__usergroups';
+$cfg['Servers'][$i]['navigationhiding'] = 'pma__navigationhiding';
+$cfg['Servers'][$i]['savedsearches'] = 'pma__savedsearches';
+$cfg['Servers'][$i]['central_columns'] = 'pma__central_columns';
+$cfg['Servers'][$i]['designer_settings'] = 'pma__designer_settings';
+$cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
+/**
+ * Third server
+ */
+$i++;
+$cfg['Servers'][$i]['auth_type'] = 'cookie';
+$cfg['Servers'][$i]['host'] = 'mysql.galaxymc.dev';
+$cfg['Servers'][$i]['connect_type'] = 'tcp';
+$cfg['Servers'][$i]['compress'] = true;
+$cfg['Servers'][$i]['AllowNoPassword'] = false;
+$cfg['Servers'][$i]['verbose'] = 'GalaxyMC.DEV UK MySQL';
+$cfg['Servers'][$i]['controluser'] = 'phpmyadmin';
+$cfg['Servers'][$i]['controlpass'] = 'UK_DEV_MYSQL_PHPMYADMIN_USER_PASSWORD';
+$cfg['Servers'][$i]['pmadb'] = 'phpmyadmin';
+$cfg['Servers'][$i]['bookmarktable'] = 'pma__bookmark';
+$cfg['Servers'][$i]['relation'] = 'pma__relation';
+$cfg['Servers'][$i]['table_info'] = 'pma__table_info';
+$cfg['Servers'][$i]['table_coords'] = 'pma__table_coords';
+$cfg['Servers'][$i]['pdf_pages'] = 'pma__pdf_pages';
+$cfg['Servers'][$i]['column_info'] = 'pma__column_info';
+$cfg['Servers'][$i]['history'] = 'pma__history';
+$cfg['Servers'][$i]['table_uiprefs'] = 'pma__table_uiprefs';
+$cfg['Servers'][$i]['tracking'] = 'pma__tracking';
+$cfg['Servers'][$i]['userconfig'] = 'pma__userconfig';
+$cfg['Servers'][$i]['recent'] = 'pma__recent';
+$cfg['Servers'][$i]['favorite'] = 'pma__favorite';
+$cfg['Servers'][$i]['users'] = 'pma__users';
+$cfg['Servers'][$i]['usergroups'] = 'pma__usergroups';
+$cfg['Servers'][$i]['navigationhiding'] = 'pma__navigationhiding';
+$cfg['Servers'][$i]['savedsearches'] = 'pma__savedsearches';
+$cfg['Servers'][$i]['central_columns'] = 'pma__central_columns';
+$cfg['Servers'][$i]['designer_settings'] = 'pma__designer_settings';
+$cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
+
+$cfg['CaptchaLoginPublicKey'] = 'GOOGLE_RECAPTCHA_PUBLIC_KEY';
+$cfg['CaptchaLoginPrivateKey'] = 'GOOGLE_RECAPTCHA_PRIVATE_KEY';
+
+$cfg['MaxRows'] = 50;
+
+$cfg['DefaultLang'] = 'en';
+
+$cfg['SendErrorReports'] = 'never';
+
+cp /etc/phpmyadmin/sql/create_tables.sql /root/create_tables.sql
+
+// Login to MySQL
+mysql -u root -p
+source /root/create_tables.sql
+// Exit MySQL
+exit;
+
+reboot now
+
+// IF PHPMYADMIN VERSION IS BELOW 5.0:
+// Install PHPMyAdmin theme: Fallen (Latest for PHPMyAdmin version installed) in /usr/share/phpmyadmin/themes
+
+/// 5. Final - Login to PHPMyAdmin and configure the settings below
+
+// PHPMyAdmin settings:
+//	Features:
+//		General:
+//			Version check: true
+//			Send error reports: Never send error reports
+//		Databases:
+//			Hide databases: (information_schema|mysql|performance_schema|phpmyadmin|sys)$
+//		Page titles:
+//			Default title: PHPMyAdmin - GalaxyMC Hosting
+//			Table: @DATABASE@ / @TABLE@ | PHPMyAdmin - GalaxyMC Hosting
+//			Database: @DATABASE@ | PHPMyAdmin - GalaxyMC Hosting
+//			Server: PHPMyAdmin - GalaxyMC Hosting
+//		Warnings:
+//			Server/library difference warning: true
+//			Missing phpMyAdmin configuration storage tables: true
+//			Suhosin warning: true
+//			Login cookie validity warning: true
+//			MySQL reserved word warning: true
+//	Navigation panel:
+//		Navigation panel: 
+//			Display logo: false
+
+// Run this command in PHPMyAdmin SQL:
+uninstall plugin validate_password;
+
+// DONE!
+
+// You can make PHPMyAdmin more secure by "deny all" OR limiting what IP addresses can view web directories /setup/ /libraries/ /templates/ /tmp/ /vendor/ /sql/ /examples/ /docs/
+
+// You can also make MySQL more secure by limiting user account access to certain IP addresses
+
+/// To setup MySQL database backup script
+// Make sure lftp is installed..it should be already installed if you followed INITIAL SETUP.TXT
+apt-get install lftp -y
+// Setup crontab to run backup script every 12 hours
+crontab -e
+0 */12 * * * /root/backup.sh
+// Set execute file perms
+chmod 770 /root/backup.sh
+
+
+// To create phpmyadmin user but limited by IP:
+CREATE USER 'phpmyadmin'@'PHPMYADMIN_IP' IDENTIFIED WITH mysql_native_password BY 'PHPMYADMIN_PASSWORD';
+GRANT USAGE ON *.* TO 'phpmyadmin'@'PHPMYADMIN_IP';
+GRANT ALL PRIVILEGES ON  `phpmyadmin`.* TO 'phpmyadmin'@'PHPMYADMIN_IP';
+
+/// Troubleshooting:
+https://stackoverflow.com/questions/11506224/connection-for-controluser-as-defined-in-your-configuration-failed-with-phpmya
+https://github.com/phpmyadmin/phpmyadmin/issues/14217
+
+
+
+// If you need to reset localhost MySQL root user:
+// Add 'skip-grant-tables' to /etc/mysql/mysql.cnf under the [mysqld] section
+// Restart MySQL server - systemctl mysql restart
+// WARN: MySQL root no longer has a password!
+// Run the command "mysql" in SSH
+// Delete root user:
+DELETE FROM mysql.user 
+WHERE  user = 'root' AND host = 'localhost';
+
+// Restore root user:
+INSERT INTO mysql.user SET User = 'root',
+Host = 'localhost',
+Select_priv = 'y',Insert_priv = 'y',Update_priv = 'y',Delete_priv = 'y',Create_priv = 'y',Drop_priv = 'y',Reload_priv = 'y',Shutdown_priv = 'y',Process_priv = 'y',File_priv = 'y',Grant_priv = 'y',References_priv = 'y',Index_priv = 'y',Alter_priv = 'y',Show_db_priv = 'y',Super_priv = 'y',Create_tmp_table_priv = 'y',Lock_tables_priv = 'y',Execute_priv = 'y',Repl_slave_priv = 'y',Repl_client_priv = 'y',Create_view_priv = 'y',Show_view_priv = 'y',Create_routine_priv = 'y',Alter_routine_priv = 'y',Create_user_priv = 'y',Event_priv = 'y',Trigger_priv = 'y',ssl_cipher = '',x509_issuer = '',x509_subject = '',Create_tablespace_priv = 'y';
+// Set new root password:
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'NEW_ROOT_PASSWORD';
+// Exit MySQL
+exit;
+
+// Remove 'skip-grant-tables' from /etc/mysql/mysql.cnf under the [mysqld] section
+// Restart MySQL server - systemctl mysql restart
+// You can now access the root user with your new password via: mysql -u root -p

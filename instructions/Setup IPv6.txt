@@ -1,0 +1,33 @@
+/// OVH:
+// Ubuntu:
+// The network configuration files are located in /etc/netplan/
+// Back up the IPv4 configuration file, copy the 50-cloud-init.yaml file using the following commands:
+cd /etc/netplan/
+mkdir backup
+cp 50-cloud-init.yaml backup/50-cloud-init.yaml
+
+// You can then revert back in case of error, using the commands below:
+rm -f /etc/netplan/50-cloud-init.yaml
+cp /etc/netplan/backup/50-cloud-init.yaml /etc/netplan/50-cloud-init.yaml
+
+// Create a file named 51-cloud-init-ipv6.yaml inside of /etc/netplan/
+
+//- Edit the 51-cloud-init-ipv6.yaml file, adding the IPv6 configuration below. Take care to change IPV6_ADDRESS, IPV6_PREFIX and IPV6_GATEWAY to your servers information and also the network interface, if you are not using eth0. You can find the network interface by looking in 50-cloud.init.yaml and seeing what "name:" says.
+// Your IPv6_PREFIX may be 64 or 128.
+network:
+    version: 2
+    ethernets:
+        eth0:
+            dhcp6: no
+            match:
+              name: eth0
+            addresses:
+              - "IPV6_ADDRESS/IPV6_PREFIX"
+            gateway6: "IPV6_GATEWAY"
+//- END
+
+// Test the configuration using this command:
+netplan try
+
+// If there are no errors, apply it, using the following command:
+netplan apply

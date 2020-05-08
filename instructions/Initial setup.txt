@@ -1,0 +1,22 @@
+// UPDATED 02.04.2020
+// Update packages:
+apt-get update && apt-get upgrade
+
+// Change root password to 30 long char with no symbol password:
+passwd
+
+// Install fail2ban:
+apt-get install fail2ban
+// Exempt IP your IP from being banned:
+nano /etc/fail2ban/jail.conf
+// Uncomment "ignoreip" and add your IP
+
+systemctl restart fail2ban
+
+// Set correct timezone for machine location - REFER TO SET TIMEZONE.TXT IF UNSURE
+
+// Setup IPv6 - REFER TO SETUP IPV6.TXT IF UNSURE
+
+apt-get install zip lftp -y
+
+// DONE, you may now install the services
