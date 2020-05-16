@@ -1,9 +1,20 @@
 // UPDATED 02.04.2020
+// Ubuntu:
 // Update packages:
 apt-get update && apt-get upgrade
 
 // Change root password to 30 long char with no symbol password:
 passwd
+
+// Set correct timezone for the machines location - REFER TO SET TIMEZONE.TXT IF UNSURE
+
+// If SSH key is not already setup
+// Upload the correct countries SSH key
+// Disable password authentication for SSH
+nano /etc/ssh/sshd_config
+// Change PasswordAuthentication from yes to no
+// Save file and restart sshd
+systemctl restart sshd
 
 // Install fail2ban:
 apt-get install fail2ban
