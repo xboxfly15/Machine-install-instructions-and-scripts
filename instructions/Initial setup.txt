@@ -1,33 +1,50 @@
 // UPDATED 02.04.2020
 // Ubuntu:
+// Switch to root user
+sudo su
 // Update packages:
 apt-get update && apt-get upgrade
 
-// Change root password to 30 long char with no symbol password:
-passwd
+// Create new user and set password to 30 long char with no symbol password
+adduser <username>
+
+// Grant sudo privileges to the newly created user
+usermod -aG sudo <username>
+
+// Set correct hostname for the machine - REFER TO SET HOSTNAME.TXT IF UNSURE
 
 // Set correct timezone for the machines location - REFER TO SET TIMEZONE.TXT IF UNSURE
 
+// Setup IPv6 - REFER TO SETUP IPV6.TXT IF UNSURE
+
+// Install lftp and zip for backups
+apt-get install zip lftp -y
+
+// Install fail2ban:
+apt-get install fail2ban -y
+// Exempt IP your IP from being banned:
+nano /etc/fail2ban/jail.conf
+// Uncomment "ignoreip" and add your IP then restart fail2ban
+systemctl restart fail2ban
+
+// If not already, switch to the newly created user
+su <username>
+
 // If SSH key is not already setup
-// Upload the correct countries SSH key
-// Disable password authentication for SSH
+mkdir ~/.ssh/
+nano ~/.ssh/authorized_keys
+// Input the countries SSH key
+// Disable password authentication and root for SSH
 nano /etc/ssh/sshd_config
 // Change PasswordAuthentication from yes to no
+// Change PermitRootLogin from prohibit-password to no
+// Add "DenyUsers root ubuntu" to the bottom
 // Save file and restart sshd
 systemctl restart sshd
 
-// Install fail2ban:
-apt-get install fail2ban
-// Exempt IP your IP from being banned:
-nano /etc/fail2ban/jail.conf
-// Uncomment "ignoreip" and add your IP
-
-systemctl restart fail2ban
-
-// Set correct timezone for machine location - REFER TO SET TIMEZONE.TXT IF UNSURE
-
-// Setup IPv6 - REFER TO SETUP IPV6.TXT IF UNSURE
-
-apt-get install zip lftp -y
-
+// Disable sudo password for SFTP
+sudo visudo
+// Add this to the bottom of the file
+<username> ALL=NOPASSWD: /usr/lib/openssh/sftp-server
+//- end
 // DONE, you may now install the services
