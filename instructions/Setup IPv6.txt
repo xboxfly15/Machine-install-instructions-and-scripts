@@ -1,10 +1,12 @@
-/// OVH:
 // Ubuntu:
 // The network configuration files are located in /etc/netplan/
+cd /etc/netplan
 
 // Create a file named 51-cloud-init-ipv6.yaml inside of /etc/netplan/
+touch 51-cloud-init-ipv6.yaml
 //- Edit the 51-cloud-init-ipv6.yaml file, adding the IPv6 configuration below. Take care to change IPV6_ADDRESS, IPV6_PREFIX and IPV6_GATEWAY to your servers information and also the network interface, if you are not using eth0. You can find the network interface by looking in 50-cloud.init.yaml and seeing what "name:" says.
-// Your IPV6_PREFIX may be 64 or 128.
+nano 51-cloud-init-ipv6.yaml
+// For OVH the IPV6_PREFIX is normally 128 but may be 64 and network interface name is normally ens3.
 network:
     version: 2
     ethernets:
@@ -15,6 +17,11 @@ network:
             addresses:
               - "IPV6_ADDRESS/IPV6_PREFIX"
             gateway6: "IPV6_GATEWAY"
+//- END
+// If you're using Ubuntu 20.04 add this to the bottom of the file as well
+            routes:
+              - to: "IPV6_GATEWAY"
+                scope: link
 //- END
 
 // Test the configuration using this command:
