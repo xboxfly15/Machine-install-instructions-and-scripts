@@ -17,10 +17,12 @@ chmod 644 /etc/ssl/mongodb.pem
 chown -R mongodb.mongodb /etc/ssl/mongodb.pem
 service mongod restart
 //-END
+// Make renew-certbot-mongodb.sh executable
+sudo chmod 744 /home/renew-certbot-mongodb.sh
 // Setup a cron to run that script every every day at 00:00/12AM and 12:00/12PM
 sudo crontab -e
 //- Enter whats below to the bottom of crontab
-0 0,12 * * * certbot renew --quiet --rsa-key-size 4096 --deploy-hook /home/renew-certbot-mongodb.sh > /home/rewnew-certbot-mongodb.log 2>&1
+0 0,12 * * * certbot renew --quiet --rsa-key-size 4096 --deploy-hook /home/renew-certbot-mongodb.sh > /home/renew-certbot-mongodb.log 2>&1
 //-END
 
 // Optimizations for MongoDB
@@ -60,6 +62,7 @@ sudo apt install libcurl4 openssl
 wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-4.4.0-rc8.tgz
 tar -zxvf mongodb-linux-*.tgz
 sudo cp mongodb-linux-*/bin/* /usr/local/bin/
+sudo rm -R mongodb-linux-*
 // The directory that MongoDB will store the database files, edit to your liking
 sudo mkdir -p /var/lib/mongo
 sudo mkdir -p /var/log/mongodb
