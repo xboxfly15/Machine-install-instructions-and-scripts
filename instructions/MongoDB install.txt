@@ -1,8 +1,8 @@
-// UPDATED 06.06.2020
+// UPDATED 2020.07.01
 /// Ubuntu 20.04:
-// Install certbot for MongoDB TLS
+// Install certbot for MongoDB SSL
 sudo apt-get install certbot -y
-// Enter your email address for Let's Encrypt and the machines hostname/domain that will be used to connect to MongoDB, this CANNOT be the machines IP address
+// Enter your email address for Let's Encrypt and the machines hostname/domain that will be used to connect to MongoDB, this CANNOT be the machines IP address - add -d <domain> to add more domains to the SSL certificate
 sudo certbot certonly --standalone --rsa-key-size 4096 --agree-tos -m <your email address> -d <full machine hostname>
 // Enter what you entered for <full machine hostname> in the certbot command to find the certificates that were generated so they can be converted to a .pem file
 sudo cat /etc/letsencrypt/live/<full machine hostname>/fullchain.pem /etc/letsencrypt/live/<full machine hostname>/privkey.pem > /etc/ssl/mongodb.pem
@@ -14,7 +14,7 @@ sudo nano /home/renew-certbot-mongodb.sh
 #!/bin/bash
 cat /etc/letsencrypt/live/<full machine hostname>/fullchain.pem /etc/letsencrypt/live/<full machine hostname>/privkey.pem > /etc/ssl/mongodb.pem
 chmod 644 /etc/ssl/mongodb.pem
-chown -R mongodb.mongodb /etc/ssl/mongodb.pem
+chown -R mongodb:mongodb /etc/ssl/mongodb.pem
 service mongod restart
 //-END
 // Make renew-certbot-mongodb.sh executable
@@ -59,7 +59,9 @@ sudo systemctl enable disable-transparent-huge-pages
 
 // Install MongoDB 4.4 via tar, extract, move the executables to /usr/bin, create new user for mongodb and set file permissions to directories/files that MongoDB will use
 sudo apt install libcurl4 openssl
-wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-4.4.0-rc8.tgz
+wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-4.4.0-rc11.tgz
+md5sum mongodb-linux-x86_64-ubuntu2004-4.4.0-rc11.tgz
+// md5sum should output 156731fb1ea3538415b92ab48ab59451
 tar -zxvf mongodb-linux-*.tgz
 sudo cp mongodb-linux-*/bin/* /usr/local/bin/
 sudo rm -R mongodb-linux-*
@@ -149,7 +151,7 @@ ExecStartPre=mkdir -p /var/run/mongodb
 ExecStartPre=chown mongodb:mongodb /var/run/mongodb
 ExecStartPre=chmod 0755 /var/run/mongodb
 PermissionsStartOnly=true
-PIDFile=/var/run/mongodb/mongod.pid
+PIDFile=/run/mongodb/mongod.pid
 # (file size)
 LimitFSIZE=infinity
 # (cpu time)

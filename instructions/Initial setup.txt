@@ -1,9 +1,13 @@
-// UPDATED 05.06.2020
-// Ubuntu:
+// UPDATED 2020.07.01
+/// Ubuntu:
 // Switch to root user
 sudo su
 // Update packages:
 apt-get update && apt-get upgrade
+
+// Add Let's Encrypt X3 SSL CA certificate
+curl https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem > /etc/ssl/certs/ISRG_Root_X3.pem
+chmod 777 /etc/ssl/certs/ISRG_Root_X3.pem
 
 // Create new user and set password to 30 long char with no symbol password
 adduser <username>
@@ -31,16 +35,16 @@ systemctl restart fail2ban
 su <username>
 
 // If SSH key is not already setup
-mkdir ~/.ssh/
-nano ~/.ssh/authorized_keys
+sudo mkdir ~/.ssh/
+sudo nano ~/.ssh/authorized_keys
 // Input the countries SSH key
 // Disable password authentication and root for SSH
-nano /etc/ssh/sshd_config
+sudo nano /etc/ssh/sshd_config
 // Change PasswordAuthentication from yes to no
 // Change PermitRootLogin from prohibit-password to no
 // Add "DenyUsers root ubuntu" to the bottom
 // Save file and restart sshd
-systemctl restart sshd
+sudo systemctl restart sshd
 
 // Disable sudo password for SFTP
 sudo visudo
