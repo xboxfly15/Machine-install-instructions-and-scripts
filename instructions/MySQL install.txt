@@ -5,9 +5,9 @@ sudo apt-get install certbot -y
 // Enter your email address for Let's Encrypt and the machines hostname/domain that will be used to connect to MySQL, this CANNOT be the machines IP address - add -d <domain> to add more domains to the SSL certificate
 sudo certbot certonly --standalone --rsa-key-size 4096 --agree-tos -m <your email address> -d <full machine hostname>
 // Enter what you entered for <full machine hostname> in the certbot command to find the certificates that were generated so they can be moved to the correct mysql directory
-sudo cat /etc/letsencrypt/live/<full machine hostname>/privkey.pem > /var/lib/mysql/private_key.pem
-sudo cat /etc/letsencrypt/live/<full machine hostname>/fullchain.pem > /var/lib/mysql/public_key.pem
-sudo cat /etc/letsencrypt/live/<full machine hostname>/chain.pem > /var/lib/mysql/ca.pem
+sudo cat /etc/letsencrypt/live/<full machine hostname>/privkey.pem > /etc/mysql/private_key.pem
+sudo cat /etc/letsencrypt/live/<full machine hostname>/fullchain.pem > /etc/mysql/public_key.pem
+sudo cat /etc/letsencrypt/live/<full machine hostname>/chain.pem > /etc/mysql/ca.pem
 // Setup renewal for the certificates
 sudo touch /home/renew-certbot-mysql.sh
 sudo nano /home/renew-certbot-mysql.sh
@@ -15,10 +15,10 @@ sudo nano /home/renew-certbot-mysql.sh
 // If the user doesn't already have that privilege, once the MySQL server is installed this can be done by running "GRANT CONNECTION_ADMIN ON *.* TO 'USER'@'HOST';" in the MySQL terminal
 //- Enter whats below into renew-certbot-mysql.sh - remember to change <full machine hostname> to what you entered in certbot command AND change USER + PASSWORD to a user with that has that privilege so the SSL certificates can be reloaded without restarting the MySQL server
 #!/bin/bash
-sudo cat /etc/letsencrypt/live/<full machine hostname>/privkey.pem > /var/lib/mysql/private_key.pem
-sudo cat /etc/letsencrypt/live/<full machine hostname>/fullchain.pem > /var/lib/mysql/public_key.pem
-sudo cat /etc/letsencrypt/live/<full machine hostname>/chain.pem > /var/lib/mysql/ca.pem
-chown -R mysql:mysql /var/lib/mysql/*.pem
+sudo cat /etc/letsencrypt/live/<full machine hostname>/privkey.pem > /etc/mysql/private_key.pem
+sudo cat /etc/letsencrypt/live/<full machine hostname>/fullchain.pem > /etc/mysql/public_key.pem
+sudo cat /etc/letsencrypt/live/<full machine hostname>/chain.pem > /etc/mysql/ca.pem
+chown -R mysql:mysql /etc/mysql/*.pem
 mysql --user="USER" --password="PASSWORD" -execute="ALTER INSTANCE RELOAD TLS;"
 //-END
 // Make renew-certbot-mysql.sh executable
@@ -26,7 +26,7 @@ sudo chmod 744 /home/renew-certbot-mysql.sh
 // Setup a cron to run that script every every day at 00:00/12AM and 12:00/12PM
 sudo crontab -e
 //- Enter whats below to the bottom of crontab
-0 0,12 * * * certbot renew --quiet --rsa-key-size 4096 --deploy-hook /home/renew-certbot-mysql.sh > /home/renew-certbot-mysql.log 2>&1
+0 0,12 * * * certbot renew --rsa-key-size 4096 --deploy-hook /home/renew-certbot-mysql.sh > /home/renew-certbot-mysql.log 2>&1
 //-END
 
 /// 2. Install Nginx and PHP - REFER TO NGINX INSTALL.TXT IF UNSURE 
