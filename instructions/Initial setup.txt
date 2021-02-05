@@ -51,4 +51,16 @@ sudo visudo
 // Add this to the bottom of the file
 <username> ALL=NOPASSWD: /usr/lib/openssh/sftp-server
 //- end
+
+// Install GalaxyMC monitoring agent
+// Install New Relic monitoring agent, remember to change LICENSE_KEY_HERE with your New Relic account license key
+curl -s https://download.newrelic.com/infrastructure_agent/gpg/newrelic-infra.gpg | sudo apt-key add -
+echo "license_key: LICENSE_KEY_HERE
+enable_process_metrics: true" | sudo tee -a /etc/newrelic-infra.yml
+printf "deb [arch=amd64] https://download.newrelic.com/infrastructure_agent/linux/apt focal main" | sudo tee -a /etc/apt/sources.list.d/newrelic-infra.list
+sudo apt-get update && apt-get install newrelic-infra -y
+
+// Reboot for good measure
+reboot now
+
 // DONE, you may now install the services

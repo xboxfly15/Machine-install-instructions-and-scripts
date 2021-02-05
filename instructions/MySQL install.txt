@@ -1,37 +1,8 @@
 // UPDATED 2020.07.01
 /// Ubuntu:
-// 1. Install certbot for MySQL SSL
-sudo apt-get install certbot -y
-// Enter your email address for Let's Encrypt and the machines hostname/domain that will be used to connect to MySQL, this CANNOT be the machines IP address - add -d <domain> to add more domains to the SSL certificate
-sudo certbot certonly --standalone --rsa-key-size 4096 --agree-tos -m <your email address> -d <full machine hostname>
-// Enter what you entered for <full machine hostname> in the certbot command to find the certificates that were generated so they can be moved to the correct mysql directory
-sudo cat /etc/letsencrypt/live/<full machine hostname>/privkey.pem > /etc/mysql/private_key.pem
-sudo cat /etc/letsencrypt/live/<full machine hostname>/fullchain.pem > /etc/mysql/public_key.pem
-sudo cat /etc/letsencrypt/live/<full machine hostname>/chain.pem > /etc/mysql/ca.pem
-// Setup renewal for the certificates
-sudo touch /home/renew-certbot-mysql.sh
-sudo nano /home/renew-certbot-mysql.sh
-// Make sure the user has the "CONNECTION_ADMIN" privilege
-// If the user doesn't already have that privilege, once the MySQL server is installed this can be done by running "GRANT CONNECTION_ADMIN ON *.* TO 'USER'@'HOST';" in the MySQL terminal
-//- Enter whats below into renew-certbot-mysql.sh - remember to change <full machine hostname> to what you entered in certbot command AND change USER + PASSWORD to a user with that has that privilege so the SSL certificates can be reloaded without restarting the MySQL server
-#!/bin/bash
-sudo cat /etc/letsencrypt/live/<full machine hostname>/privkey.pem > /etc/mysql/private_key.pem
-sudo cat /etc/letsencrypt/live/<full machine hostname>/fullchain.pem > /etc/mysql/public_key.pem
-sudo cat /etc/letsencrypt/live/<full machine hostname>/chain.pem > /etc/mysql/ca.pem
-chown -R mysql:mysql /etc/mysql/*.pem
-mysql --user="USER" --password="PASSWORD" -execute="ALTER INSTANCE RELOAD TLS;"
-//-END
-// Make renew-certbot-mysql.sh executable
-sudo chmod 744 /home/renew-certbot-mysql.sh
-// Setup a cron to run that script every every day at 00:00/12AM and 12:00/12PM
-sudo crontab -e
-//- Enter whats below to the bottom of crontab
-0 0,12 * * * certbot renew --rsa-key-size 4096 --deploy-hook /home/renew-certbot-mysql.sh > /home/renew-certbot-mysql.log 2>&1
-//-END
+/// If you're installing PHPMyAdmin, install Nginx and PHP - REFER TO NGINX INSTALL.TXT IF UNSURE 
 
-/// 2. Install Nginx and PHP - REFER TO NGINX INSTALL.TXT IF UNSURE 
-
-/// 3. Install MySQL 8
+/// 1. If you're installing normal MySQL 8, install MySQL 8
 cd ~
 // Visit https://dev.mysql.com/downloads/repo/apt/ and get latest version
 // At the time of writing 0.8.15-1 is the latest
@@ -40,10 +11,20 @@ md5sum mysql-apt-config_0.8.15-1_all.deb
 // Make sure the output of md5sum is 4126e44e0867531a4724ab0c21d1d645
 sudo dpkg -i mysql-apt-config*
 // Make sure MySQL server and tools are selected with latest version
-
 sudo apt update
 rm mysql-apt-config*
 sudo apt install mysql-server -y
+
+/// 1. If you're installing Percona Server for MySQL 8, install Percona Server for MySQL 8
+sudo apt install gnupg2 -y
+wget https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb
+md5sum percona-release_latest.$(lsb_release -sc)_all.deb
+// Make sure the output of md5sum is dd651f25a3aebbba7c36ca55278d00a3
+sudo dpkg -i percona-release_latest.$(lsb_release -sc)_all.deb
+sudo percona-release setup ps80
+sudo apt update
+rm percona-release_latest*
+sudo apt install percona-server-server -y
 
 // Create a password for the MySQL root account
 
@@ -58,12 +39,39 @@ mysql --version
 mysql_secure_installation
 // Settings: n , n , y , n , y , y
 
+// 2. Install certbot for MySQL SSL
+sudo apt-get install certbot -y
+// Enter your email address for Let's Encrypt and the machines hostname/domain that will be used to connect to MySQL, this CANNOT be the machines IP address - add -d <domain> to add more domains to the SSL certificate
+sudo certbot certonly --standalone --rsa-key-size 4096 --agree-tos -m <your email address> -d <full machine hostname>
+// Enter what you entered for <full machine hostname> in the certbot command to find the certificates that were generated so they can be moved to the correct mysql directory
+sudo cat /etc/letsencrypt/live/<full machine hostname>/privkey.pem > /etc/mysql/private_key.pem
+sudo cat /etc/letsencrypt/live/<full machine hostname>/fullchain.pem > /etc/mysql/public_key.pem
+sudo cat /etc/letsencrypt/live/<full machine hostname>/chain.pem > /etc/mysql/ca.pem
+// Setup renewal for the certificates
+sudo nano /home/renew-certbot-mysql.sh
+// Make sure the user has the "CONNECTION_ADMIN" privilege
+// If the user doesn't already have that privilege, once the MySQL server is installed this can be done by running "GRANT CONNECTION_ADMIN ON *.* TO 'USER'@'HOST';" in the MySQL terminal
+//- Enter whats below into renew-certbot-mysql.sh - remember to change <full machine hostname> to what you entered in certbot command AND change USER + PASSWORD to a user with that has that privilege so the SSL certificates can be reloaded without restarting the MySQL server
+#!/bin/bash
+sudo cat /etc/letsencrypt/live/<full machine hostname>/privkey.pem > /etc/mysql/private_key.pem
+sudo cat /etc/letsencrypt/live/<full machine hostname>/fullchain.pem > /etc/mysql/public_key.pem
+sudo cat /etc/letsencrypt/live/<full machine hostname>/chain.pem > /etc/mysql/ca.pem
+chown -R mysql:mysql /etc/mysql/*.pem
+mysql --user="USER" --password="PASSWORD" -execute="ALTER INSTANCE RELOAD TLS;"
+//-END
+// Make renew-certbot-mysql.sh executable
+sudo chmod 744 /home/renew-certbot-mysql.sh
+// Setup a cron to run that script everyday at 00:00/12AM and 12:00/12PM
+sudo crontab -e
+//- Enter whats below to the bottom of crontab
+0 0,12 * * * certbot renew --rsa-key-size 4096 --deploy-hook /home/renew-certbot-mysql.sh > /home/renew-certbot-mysql.log 2>&1
+//-END
 
 // EDIT /etc/mysql/mysql.cnf
 // Add or change if already exists
 [mysqld]
 default_authentication_plugin = mysql_native_password
-skip_name_resolve=1
+skip_name_resolve = 1
 max_connections = 400
 port = 3306
 port_open_timeout = 5
@@ -78,9 +86,11 @@ binlog_rows_query_log_events
 log_error = "/var/log/mysql/error.log"
 #general_log
 #general_log_file = "/var/log/mysql/host_name.log"
-ssl-ca = /var/lib/mysql/ca.pem
-ssl-cert = /var/lib/mysql/public_key.pem
-ssl-key = /var/lib/mysql/private_key.pem
+ssl-ca = /etc/mysql/ca.pem
+ssl-cert = /etc/mysql/public_key.pem
+ssl-key = /etc/mysql/private_key.pem
+
+reboot now
 
 /// (OPTIONAL) FOR OVH USERS TO RELOCATE MYSQL DATABSES TO ADDITIONAL DRIVE:
 // Make sure MySQL is stopped
@@ -119,14 +129,26 @@ chown mysql:mysql -R mysql
 chmod 700 mysql -R
 systemctl start mysql
 
-// If you restart the VPS run these commands:
+// Setup a cron to automatically mount the disk when the machine reboots:
+sudo nano /home/mount-disk-mysql.sh
+//- Enter whats below into mount-disk-mysql.sh
+#!/bin/bash
 mount /dev/sdb /mnt/sdb
 systemctl start mysql
+//-END
+
+// Make mount-disk-mysql.sh executable
+sudo chmod 744 /home/mount-disk-mysql.sh
+// Setup a cron to run that script everytime the machine reboots
+sudo crontab -e
+//- Enter whats below to the bottom of crontab
+@reboot /home/mount-disk-mysql.sh > /home/mount-disk-mysql.log 2>&1
+//-END
 
 /// END: OVH USERS TO RELOCATE MYSQL DATABSES TO ADDITIONAL DRIVE
 
 
-/// 4. Prep for PHPMyAdmin
+/// 3. If you're installing PHPMyAdmin, prep for PHPMyAdmin else skip to DONE!
 // Login to MySQL
 mysql -u root -p
 ALTER USER root IDENTIFIED WITH mysql_native_password BY 'MYSQL_ROOT_PASSWORD';
@@ -136,9 +158,10 @@ GRANT ALL PRIVILEGES ON *.* To 'phpmyadmin'@'%';
 ALTER USER phpmyadmin IDENTIFIED WITH mysql_native_password BY 'PHPMYADMIN_PASSWORD';
 
 UPDATE mysql.user SET host = '%' WHERE user = 'root';
+FLUSH PRIVILEGES;
 exit;
 
-/// 5. Download and install PHPMyAdmin
+/// 4. Download and install PHPMyAdmin
 // Visit phpmyadmin.net and get latest English only version, at the time of writing this is 5.0.2
 cd ~
 curl -OL https://files.phpmyadmin.net/phpMyAdmin/5.0.2/phpMyAdmin-5.0.2-english.tar.gz
@@ -247,7 +270,7 @@ reboot now
 // IF PHPMYADMIN VERSION IS BELOW 5.0:
 // Install PHPMyAdmin theme: Fallen (Latest for PHPMyAdmin version installed) in /usr/share/phpmyadmin/themes
 
-/// 6. Final - Login to PHPMyAdmin and configure the settings below
+/// 5. Final - Login to PHPMyAdmin and configure the settings below
 
 // PHPMyAdmin settings:
 //	Features:
@@ -278,16 +301,18 @@ uninstall plugin validate_password;
 
 // You can make PHPMyAdmin more secure by "deny all" OR limiting what IP addresses can view web directories /setup/ /libraries/ /templates/ /tmp/ /vendor/ /sql/ /examples/ /docs/
 
-// You can also make MySQL more secure by limiting user account access to certain IP addresses
+// You can make MySQL more secure by limiting user account access to certain IP addresses
 
 /// To setup MySQL database backup script
 // Make sure lftp is installed..it should be already installed if you followed INITIAL SETUP.TXT
 apt-get install lftp -y
-// Make sure mysql-backup.sh is executable
-chmod 770 /home/mysql-backup.sh
+// Fetch mysql-backup.sh from GitHub and copy it to /home/backup_databases.sh
+// Make sure backup_databases.sh is executable
+chmod 770 /home/backup_databases.sh
 // Setup crontab to run backup script every 12 hours
 crontab -e
-0 */12 * * * /home/mysql-backup.sh
+0 */12 * * * /home/backup_databases.sh
+
 
 
 // To create phpmyadmin user but limited by IP:
@@ -321,3 +346,6 @@ exit;
 // Restart MySQL server
 systemctl mysql restart
 // The root user will now use your new password
+
+// Change users auth plugin from 'auth_socket' to 'mysql_native_password'
+ALTER USER 'USER'@'%' IDENTIFIED WITH mysql_native_password BY 'PASSWORD';

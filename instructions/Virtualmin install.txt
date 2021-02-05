@@ -1,0 +1,99 @@
+wget http://software.virtualmin.com/gpl/scripts/install.sh
+
+sudo /bin/sh install.sh
+
+// Continue: y
+// Wait for it to install everything, this will take awhile
+
+// Once install is complete, login to https://<hostname>:1000/ - remember to change <hostname> to your systems hostname
+// The SSL security warning is normal just after install and can be bypassed/ignored for the first time
+
+// Post-installation wizard:
+// Preload Virtualmin libraries? = Yes
+// Run email domain lookup server? = No
+// Enable virus scanning with ClamAV? = No
+// Run MariaDB/MySQL database server? = No
+// Run PostgreSQL database server? = No
+// Enter nameservers, it's recommended to have 4 nameservers
+// Password storage mode = Only store hashed passwords
+// Setup default virtual server? = Create server with domain
+// Enable SSL on default server? = Yes, with Let's Encrypt certificate
+// Post-installation now complete!
+
+// Manage Enabled Features and Plugins (System Settings -> Features and Plugins):
+// Mail for domain = Disabled
+// Spam filtering = Disabled
+// DAV Login = Disabled
+// Git repositories = Enabled
+// SSL Website = Enabled by default
+
+// Recheck & verify configuration
+
+// Make sure Network Configuration is setup correctly before restarting
+
+// Make sure IPv6 is setup for virtual servers if you have a IPv6 AAAA DNS record, else things like Let's Encrypt will fail and IPv6 will not work for visitors - this can be done by going to Server Configuration -> Change IP Address = New IPv6 address
+
+// System Settings -> Virtualmin Configuration -> Networking settings -> Use default IPv6 address for new virtual servers? = Yes
+
+// Make sure Let's Encrypt is used, if it's not go to Server Configuration -> SSL Certificate -> Let's Encrypt = Domain names listed here, enter the domain/system hostname and press "Request Certificate"
+
+// If you get "Quotas are not enabled on the filesystem / which contains home directories under /home and email files under /home. Quota editing has been disabled."
+// Login to SSH and run the commands
+apt-get -y install linux-image-generic
+apt-get -y install linux-headers-generic
+apt-get -y install linux-image-extra-`uname -r`
+reboot now
+// Quotas should now be enabled
+
+// Setup an alias
+
+// Webmin -> Webmin -. Webmin Configuration -> Trusted Referrers -> Trusted websites = enter the alias and system hostname
+// Webmin -> Webmin -. Webmin Configuration -> Web Server Options -> URL format for redirects = Path only
+// Webmin -> Webmin -. Webmin Configuration -> Web Server Options -> List directories without an index file? = No
+// Webmin -> Webmin -. Webmin Configuration -> Web Server Options -> Show Perl errors in browser? = No
+// Webmin -> Webmin -. Webmin Configuration -> Authentication -> Show real hostname instead of name from URL? = Yes
+// Webmin -> Webmin -. Webmin Configuration -> Authentication -> Webmin password hashing format = Use SHA512 encryption
+// Webmin -> Webmin -. Webmin Configuration -> Ports and Addresses -> Bind to IP address -> Only address.. = 127.0.0.1
+// Webmin -> Webmin -. Webmin Configuration -> SSL Encryption -> Enable SSL? = No
+
+// On the parent virtual server, go to Server Configuration -> Edit Proxy Website -> Proxying Enabled = Yes and enter http://localhost:10000/
+
+// If you're on Cloudflare and want to restore the original requesters IP address
+// Go to Services -> Configure SSL Website -> Edit Directives and add this below ProxyPassReverse and above <Proxy *> then click save
+//-
+ProxyAddHeaders Off
+RequestHeader set "X-Forwarded-For" "%{REMOTE_ADDR}s"
+<If "%{HTTP:CF-Connecting-IP} != ''">
+ Require ip 173.245.48.0/20
+ Require ip 103.21.244.0/22
+ Require ip 103.22.200.0/22
+ Require ip 103.31.4.0/22
+ Require ip 141.101.64.0/18
+ Require ip 108.162.192.0/18
+ Require ip 190.93.240.0/20
+ Require ip 188.114.96.0/20
+ Require ip 197.234.240.0/22
+ Require ip 198.41.128.0/17
+ Require ip 162.158.0.0/15
+ Require ip 104.16.0.0/12
+ Require ip 172.64.0.0/13
+ Require ip 131.0.72.0/22
+ Require ip 2400:cb00::/32
+ Require ip 2606:4700::/32
+ Require ip 2803:f800::/32
+ Require ip 2405:b500::/32
+ Require ip 2405:8100::/32
+ Require ip 2a06:98c0::/29
+ Require ip 2c0f:f248::/32
+ SetEnvIf CF-Connecting-IP (.*) saved_x_forwarded_for=$1
+ RequestHeader set "X-Forwarded-For" "%{saved_x_forwarded_for}e"
+</If>
+//- END
+
+// Webmin -> Webmin -. Webmin Configuration -> User Interface -> Allow sending of feedback? = No
+// Setup Authy 2fa at Webmin - Webmin ->. Webmin Configuration -> User Interface -> Two-Factory Authentication
+// Setup email sending via external SMTP - Webmin -> Webmin -. Webmin Configuration -> Sending Email
+// Use remote MySQL database - Webmin -> Servers -> MySQL Database server -> Module config cog next to question mark -> System configuration -> MySQL host to connect to = Enter IP address/hostname of remote MySQL database and enter username+password when asked
+// To fix 127.0.0.1 DNS not being added at reboot, open /etc/dhcp/dhclient.conf and uncomment "prepend domain-name-servers 127.0.0.1;"
+
+// DONE
