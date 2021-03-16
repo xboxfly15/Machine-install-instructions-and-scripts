@@ -5,6 +5,11 @@ sudo /bin/sh install.sh
 // Continue: y
 // Wait for it to install everything, this will take awhile
 
+// Install PHP 7.4(or latest, whatever Virtualmin is using) intl & gd
+sudo apt-get install php7.4-intl php7.4-gd
+phpenmod intl
+phpenmod gd
+
 // Once install is complete, login to https://<hostname>:1000/ - remember to change <hostname> to your systems hostname
 // The SSL security warning is normal just after install and can be bypassed/ignored for the first time
 

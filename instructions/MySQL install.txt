@@ -171,6 +171,10 @@ mv phpMyAdmin-5.0.2-english/* /etc/phpmyadmin/
 rm -R phpMyAdmin-*
 Set www-data folder owner for /etc/phpmyadmin/ - REFER TO NGINX INSTALL IF UNSURE
 
+// Add Let's Encrypt R3 Cross-signed certificate
+curl https://letsencrypt.org/certs/lets-encrypt-r3-cross-signed.pem > /etc/ssl/certs/IdenTrust_R3.pem
+chmod 777 /etc/ssl/certs/IdenTrust_R3.pem
+
 // Setup phpmyadmin nginx website file & upload/install SSL
 // Enable your PHPMyAdmiin site in Nginx - REFER TO NGINX INSTALL IF UNSURE
 
@@ -220,7 +224,7 @@ $cfg['Servers'][$i]['auth_type'] = 'cookie';
 $cfg['Servers'][$i]['host'] = 'HOSTNAME';
 $cfg['Servers'][$i]['connect_type'] = 'tcp';
 $cfg['Servers'][$i]['ssl'] = true;
-$cfg['Servers'][$i]['ssl_ca'] = '/etc/ssl/certs/ISRG_Root_X3.pem';
+$cfg['Servers'][$i]['ssl_ca'] = '/etc/ssl/certs/IdenTrust_R3.pem';
 $cfg['Servers'][$i]['ssl_ca_path'] = '/etc/ssl/certs/';
 $cfg['Servers'][$i]['compress'] = true;
 $cfg['Servers'][$i]['AllowNoPassword'] = false;
@@ -326,6 +330,8 @@ https://github.com/phpmyadmin/phpmyadmin/issues/14217
 
 
 
+
+
 // If you need to reset MySQL root@localhost user:
 // Add 'skip-grant-tables' to bottom of [mysqld] section in /etc/mysql/mysql.cnf
 // Restart MySQL server
@@ -341,11 +347,14 @@ INSERT INTO mysql.user SET User = 'root', Host = 'localhost', Select_priv = 'y',
 ALTER USER 'root'@'localhost' IDENTIFIED BY 'NEW_ROOT_PASSWORD';
 // Exit MySQL terminal
 exit;
-
 // Remove 'skip-grant-tables' from the [mysqld] section in /etc/mysql/mysql.cnf
 // Restart MySQL server
 systemctl mysql restart
 // The root user will now use your new password
 
+
 // Change users auth plugin from 'auth_socket' to 'mysql_native_password'
 ALTER USER 'USER'@'%' IDENTIFIED WITH mysql_native_password BY 'PASSWORD';
+
+// If you get '_gateway' not allowed to connect to this MySQL server
+RENAME USER 'root'@'localhost' TO 'root'@'%';
