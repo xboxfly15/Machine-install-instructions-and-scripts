@@ -6,10 +6,6 @@ fi
 
 apt update -y && apt upgrade -y && apt autoremove -y
 
-echo "Installing Let's Encrypt X3 Root certificate"
-curl https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem > /etc/ssl/certs/ISRG_Root_X3.pem
-chmod 777 /etc/ssl/certs/ISRG_Root_X3.pem
-
 echo "Enter username"
 read username
 adduser $username
