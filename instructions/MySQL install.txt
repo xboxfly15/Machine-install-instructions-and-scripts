@@ -308,16 +308,43 @@ uninstall plugin validate_password;
 // You can make MySQL more secure by limiting user account access to certain IP addresses
 
 /// To setup MySQL database backup script
-// Make sure lftp is installed..it should be already installed if you followed INITIAL SETUP.TXT
-apt-get install lftp -y
-// Fetch mysql-backup.sh from GitHub and copy it to /home/backup_databases.sh
+/// If you're using Percona Server for MySQL 8, use Percona XtraBackup
+// Install lftp and Percona XtraBackup
+apt-get install lftp percona-xtrabackup-80 -y
+// Fetch mysql_backup_percona.sh from GitHub and copy it to /home/backup_databases.sh
 // Make sure backup_databases.sh is executable
 chmod 770 /home/backup_databases.sh
 // Setup crontab to run backup script every 12 hours
 crontab -e
 0 */12 * * * /home/backup_databases.sh
 
+/// If you're using normal MySQL 8
+// Make sure lftp is installed..it should be already installed if you followed INITIAL SETUP.TXT
+apt-get install lftp -y
+// Fetch mysql_backup.sh from GitHub and copy it to /home/backup_databases.sh
+// Make sure backup_databases.sh is executable
+chmod 770 /home/backup_databases.sh
+// Setup crontab to run backup script every 12 hours
+crontab -e
+0 */12 * * * /home/backup_databases.sh
 
+/// To restore a backup from Percona XtraBackup
+// Restore a full backup - MySQL must be shut down to do this
+systemctl stop mysql
+xtrabackup --prepare --target-dir=/path/to/backup/you/want/to/restore
+rm -r /var/lib/mysql/*
+xtrabackup --copy-back --target-dir=/path/to/backup/you/want/to/restore
+chown -R mysql:mysql /var/lib/mysql
+systemctl start mysql
+// Done, backup restored
+
+// Restore a single table
+xtrabackup --prepare --export --target-dir=/path/to/backup/you/want/to/restore
+// In MySQL run:
+ALTER TABLE <database>.<table> DISCARD TABLESPACE;
+// After you've done that, copy the files in the table directory from the prepared/exported backup to /var/lib/mysql/<database>/<table>
+ALTER TABLE <database>.<table> IMPORT TABLESPACE;
+// Done, you should now be able to see the data in mysql
 
 // To create phpmyadmin user but limited by IP:
 CREATE USER 'phpmyadmin'@'PHPMYADMIN_IP' IDENTIFIED WITH mysql_native_password BY 'PHPMYADMIN_PASSWORD';
