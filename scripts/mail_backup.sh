@@ -1,15 +1,24 @@
 #!/bin/sh
 #Mail local+external FTP backup script
-#Last update 2019/07/20
+#Last update 2021/03/29
 #Made by xboxfly15
 now="$(date +%a_%d-%b-%Y)/$(date +%I%p-%Z)"
+deleteolderthanxdays=5
 localstorage="PATH_TO_STORE_BACKUPS_LOCALLY"
 
 mkdir -p $localstorage/$now
-echo 'Created folder, starting dump'
+echo 'Created folder, deleting old backups'
+
+[ -z "${localstorage:-}" ]
+[ -z "${deleteolderthanxdays:-}" ]
+find "$localstorage"/ -maxdepth 1 -type d -mtime +"$deleteolderthanxdays" | xargs rm -rf --preserve-root
+
+echo 'Finished deleting old backups, starting dump'
 
 export MAILCOW_BACKUP_LOCATION="$localstorage/$now"
 /opt/mailcow-dockerized/helper-scripts/backup_and_restore.sh backup all
+echo 'Finished dump'
+
 sleep 10
 
 ftpuser="EXTERNAL_FTP_USER"
