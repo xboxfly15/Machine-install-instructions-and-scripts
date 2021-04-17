@@ -1,7 +1,30 @@
+# Install certbot and socat for Let's Encrypt SSL
+apt install certbot socat -y
+
+sudo certbot certonly --standalone --rsa-key-size 4096 --agree-tos --preferred-challenges http --http-01-address 127.0.0.1 --http-01-port=54321 --email <your email address> -d <website domain> -d www.<website domain>
+
+// Setup renewal for the certificates
+sudo nano /home/renew-certbot-haproxy.sh
+//- Enter whats below into renew-certbot-haproxy.sh
+#!/bin/bash
+cert=`basename $RENEWED_LINEAGE`
+sudo cat /etc/letsencrypt/live/$cert/fullchain.pem /etc/letsencrypt/live/$cert/privkey.pem > /etc/haproxy/certs/$cert.pem
+echo "commit ssl cert /etc/haproxy/certs/$cert.pem" | socat /run/haproxy/admin.sock -
+// -END
+
+// Make renew-certbot-haproxy.sh executable
+sudo chmod 744 /home/renew-certbot-haproxy.sh
+// Setup a cron to run that script everyday at 00:00/12AM and 12:00/12PM
+sudo crontab -e
+//- Enter whats below to the bottom of crontab
+0 0,12 * * * certbot renew --rsa-key-size 4096 --preferred-challenges http --http-01-address 127.0.0.1 --http-01-port=54321 --deploy-hook /home/renew-certbot-haproxy.sh > /home/renew-certbot-haproxy.log 2>&1
+//-END
+
 add-apt-repository ppa:vbernat/haproxy-2.2
 apt update && apt install haproxy -y
 mkdir /etc/haproxy/certs/
-Put SSL certificates into /etc/haproxy/certs/ - public keys suffixed domains TLD and .pem and private keys suffixed domains TLD and .pem.key
+Put SSL certificates into /etc/haproxy/certs/ - public keys suffixed domains TLD and .pem and private keys suffixed domains TLD and .pem.key OR include full cert and private key in one file ending .pem
+// If using Cloudflare with Full (Strict) SSL with Authorised Origin Pulls
 wget https://support.cloudflare.com/hc/en-us/article_attachments/360044928032/origin-pull-ca.pem > /etc/haproxy/cloudflare-origin-pull-ca.pem
 nano /etc/haproxy/haproxy.cfg
 
@@ -53,3 +76,7 @@ listen stats
    stats enable
    stats uri /
    stats realm Haproxy\ Statistics
+
+
+# To test the configuration
+haproxy -c -V -f /etc/haproxy/haproxy.cfg
