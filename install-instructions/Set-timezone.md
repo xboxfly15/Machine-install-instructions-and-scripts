@@ -1,0 +1,12 @@
+### Ubuntu:
+```
+dpkg-reconfigure tzdata
+```
+### CentOS:
+```
+tzselect
+```
+### Other:
+```
+timedatectl set-timezone Europe/London
+```

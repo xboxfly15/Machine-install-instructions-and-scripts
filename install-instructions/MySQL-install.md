@@ -1,0 +1,483 @@
+---
+title: MySQL Install
+---
+###### UPDATED 2020.07.01
+___
+### Ubuntu:
+### If you're installing PHPMyAdmin, install Nginx and PHP - REFER TO NGINX INSTALL.TXT IF UNSURE 
+
+### 1. If you're installing normal MySQL 8, install MySQL 8
+```
+cd ~
+```
+Visit https://dev.mysql.com/downloads/repo/apt/ and get latest version  
+At the time of writing 0.8.15-1 is the latest  
+```
+curl -OL https://dev.mysql.com/get/mysql-apt-config_0.8.15-1_all.deb
+sudo dpkg -i mysql-apt-config*
+```
+Make sure MySQL server and tools are selected with latest version
+```
+sudo apt update
+rm mysql-apt-config*
+sudo apt install mysql-server -y
+```
+### 1. If you're installing Percona Server for MySQL 8, install Percona Server for MySQL 8
+```
+sudo apt install gnupg2 -y
+wget https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb
+sudo dpkg -i percona-release_latest.$(lsb_release -sc)_all.deb
+sudo percona-release setup ps80
+sudo apt update
+rm percona-release_latest*
+sudo apt install percona-server-server -y
+```
+Create a password for the MySQL root account
+
+Select legacy password
+
+```
+systemctl status mysql
+```
+Check its installed and online
+
+```
+mysql --version
+```
+Should show version 8
+
+```
+mysql_secure_installation
+```
+Settings: n , n , y , n , y , y
+
+### 2. Install certbot for MySQL SSL
+```
+sudo apt-get install certbot -y
+```
+Enter your email address for Let's Encrypt and the machines hostname/domain that will be used to connect to MySQL, this CANNOT be the machines IP address - add -d <domain> to add more domains to the SSL certificate  
+```
+sudo certbot certonly --standalone --rsa-key-size 4096 --agree-tos -m <your email address> -d <full machine hostname>
+```
+Enter what you entered for <full machine hostname> in the certbot command to find the certificates that were generated so they can be moved to the correct mysql directory  
+```
+sudo cat /etc/letsencrypt/live/<full machine hostname>/privkey.pem > /etc/mysql/private_key.pem
+sudo cat /etc/letsencrypt/live/<full machine hostname>/fullchain.pem > /etc/mysql/public_key.pem
+sudo cat /etc/letsencrypt/live/<full machine hostname>/chain.pem > /etc/mysql/ca.pem
+```
+Setup renewal for the certificates
+```
+sudo nano /home/renew-certbot-mysql.sh
+```
+Make sure the user has the `CONNECTION_ADMIN` privilege  
+If the user doesn't already have that privilege, once the MySQL server is installed this can be done by running `GRANT CONNECTION_ADMIN ON *.* TO 'USER'@'HOST';` in the MySQL terminal  
+Enter whats below into renew-certbot-mysql.sh - remember to change <full machine hostname> to what you entered in certbot command AND change USER + PASSWORD to a user with that has that privilege so the SSL certificates can be reloaded without restarting the MySQL server  
+```
+#!/bin/bash
+sudo cat /etc/letsencrypt/live/<full machine hostname>/privkey.pem > /etc/mysql/private_key.pem
+sudo cat /etc/letsencrypt/live/<full machine hostname>/fullchain.pem > /etc/mysql/public_key.pem
+sudo cat /etc/letsencrypt/live/<full machine hostname>/chain.pem > /etc/mysql/ca.pem
+chown -R mysql:mysql /etc/mysql/*.pem
+mysql --user="USER" --password="PASSWORD" -execute="ALTER INSTANCE RELOAD TLS;"
+```
+Make renew-certbot-mysql.sh executable
+```
+sudo chmod 744 /home/renew-certbot-mysql.sh
+```
+Setup a cron to run that script everyday at 00:00/12AM and 12:00/12PM
+```
+sudo crontab -e
+```
+Enter whats below to the bottom of crontab
+```
+0 0,12 * * * certbot renew --rsa-key-size 4096 --deploy-hook /home/renew-certbot-mysql.sh > /home/renew-certbot-mysql.log 2>&1
+```
+
+EDIT /etc/mysql/mysql.cnf  
+Add or change if already exists  
+```
+[mysqld]
+default_authentication_plugin = mysql_native_password
+skip_name_resolve = 1
+max_connections = 400
+port = 3306
+port_open_timeout = 5
+max_user_connections = 200
+net_retry_count = 10
+bind_address = *
+safe_user_create
+slow_query_log = 1
+slow_query_log_file = "/var/log/mysql/slow-queries.log"
+log_queries_not_using_indexes
+binlog_rows_query_log_events
+log_error = "/var/log/mysql/error.log"
+#general_log
+#general_log_file = "/var/log/mysql/host_name.log"
+ssl-ca = /etc/mysql/ca.pem
+ssl-cert = /etc/mysql/public_key.pem
+ssl-key = /etc/mysql/private_key.pem
+```
+```
+reboot now
+```
+### (OPTIONAL) FOR OVH USERS TO RELOCATE MYSQL DATABSES TO ADDITIONAL DRIVE:
+Make sure MySQL is stopped  
+```
+systemctl stop mysql
+
+mkdir -p /mnt/sdb
+mkfs.ext4 /dev/sdb
+mount /dev/sdb /mnt/sdb
+```
+Confirm sdb is listed with a size of 50G  
+```
+df -h
+
+mkdir -p /mnt/sdb/mysql
+```
+EDIT /etc/apparmor.d/usr.sbin.mysqld  
+CHANGE:  
+```
+# Allow data dir access
+  /var/lib/mysql/ r,
+  /var/lib/mysql/** rwk,
+```
+TO:
+```
+# Allow data dir access
+  /mnt/sdb/mysql/ r,
+  /mnt/sdb/mysql/** rwk,
+```
+EDIT /etc/mysql/mysql.cnf  
+Add to [mysqld]
+```
+datadir = /mnt/sdb/mysql
+```
+```
+mv /var/lib/mysql/ /mnt/sdb/mysql/
+
+reboot now
+mount /dev/sdb /mnt/sdb
+
+cd /mnt/sdb
+chown mysql:mysql -R mysql
+chmod 700 mysql -R
+systemctl start mysql
+```
+Setup a cron to automatically mount the disk when the machine reboots:
+```
+sudo nano /home/mount-disk-mysql.sh
+```
+Enter whats below into mount-disk-mysql.sh
+```
+#!/bin/bash
+mount /dev/sdb /mnt/sdb
+systemctl start mysql
+```
+
+Make mount-disk-mysql.sh executable
+```
+sudo chmod 744 /home/mount-disk-mysql.sh
+```
+Setup a cron to run that script everytime the machine reboots
+```
+sudo crontab -e
+```
+Enter whats below to the bottom of crontab
+```
+@reboot /home/mount-disk-mysql.sh > /home/mount-disk-mysql.log 2>&1
+```
+
+### END: OVH USERS TO RELOCATE MYSQL DATABSES TO ADDITIONAL DRIVE
+
+
+### 3. If you're installing PHPMyAdmin, prep for PHPMyAdmin else skip to DONE!
+Login to MySQL
+```
+mysql -u root -p
+```
+```
+ALTER USER root IDENTIFIED WITH mysql_native_password BY 'MYSQL_ROOT_PASSWORD';
+
+CREATE USER 'phpmyadmin'@'%' IDENTIFIED BY 'PHPMYADMIN_PASSWORD';
+GRANT ALL PRIVILEGES ON *.* To 'phpmyadmin'@'%';
+ALTER USER phpmyadmin IDENTIFIED WITH mysql_native_password BY 'PHPMYADMIN_PASSWORD';
+
+UPDATE mysql.user SET host = '%' WHERE user = 'root';
+FLUSH PRIVILEGES;
+exit;
+```
+### 4. Download and install PHPMyAdmin
+Visit phpmyadmin.net and get latest English only version, at the time of writing this is 5.0.2
+```
+cd ~
+curl -OL https://files.phpmyadmin.net/phpMyAdmin/5.0.2/phpMyAdmin-5.0.2-english.tar.gz
+tar xvzf phpMyAdmin-5.0.2-english.tar.gz
+mkdir /etc/phpmyadmin
+mv phpMyAdmin-5.0.2-english/* /etc/phpmyadmin/
+rm -R phpMyAdmin-*
+```
+Set www-data folder owner for /etc/phpmyadmin/ - REFER TO NGINX INSTALL IF UNSURE
+
+Add Let's Encrypt R3 Cross-signed certificate
+```
+curl https://letsencrypt.org/certs/lets-encrypt-r3-cross-signed.pem > /etc/ssl/certs/IdenTrust_R3.pem
+chmod 777 /etc/ssl/certs/IdenTrust_R3.pem
+```
+Setup phpmyadmin nginx website file & upload/install SSL  
+Enable your PHPMyAdmiin site in Nginx - REFER TO NGINX INSTALL IF UNSURE
+
+```
+chown www-data:www-data -R /etc/phpmyadmin/
+cp /etc/phpmyadmin/config.sample.inc.php /etc/phpmyadmin/config.inc.php
+```
+EDIT /etc/phpmyadmin/config.inc.php
+```
+$cfg['blowfish_secret'] = 'RANDOM_33_LENGTH_STRING_WITH_SYMBOLS_NUMBERS_LETTERS_AND_NUMBERS';
+
+/**
+ * First server
+ */
+$i++;
+$cfg['Servers'][$i]['auth_type'] = 'cookie';
+$cfg['Servers'][$i]['host'] = 'localhost';
+$cfg['Servers'][$i]['compress'] = false;
+$cfg['Servers'][$i]['AllowNoPassword'] = false;
+$cfg['Servers'][$i]['verbose'] = 'NAME_YOUR_MYSQL_SERVER_SO_IT_IS_EASILY_IDENTIFIABLE';
+$cfg['Servers'][$i]['controluser'] = 'phpmyadmin';
+$cfg['Servers'][$i]['controlpass'] = 'PHPMYADMIN_PASSWORD';
+$cfg['Servers'][$i]['pmadb'] = 'phpmyadmin';
+$cfg['Servers'][$i]['bookmarktable'] = 'pma__bookmark';
+$cfg['Servers'][$i]['relation'] = 'pma__relation';
+$cfg['Servers'][$i]['table_info'] = 'pma__table_info';
+$cfg['Servers'][$i]['table_coords'] = 'pma__table_coords';
+$cfg['Servers'][$i]['pdf_pages'] = 'pma__pdf_pages';
+$cfg['Servers'][$i]['column_info'] = 'pma__column_info';
+$cfg['Servers'][$i]['history'] = 'pma__history';
+$cfg['Servers'][$i]['table_uiprefs'] = 'pma__table_uiprefs';
+$cfg['Servers'][$i]['tracking'] = 'pma__tracking';
+$cfg['Servers'][$i]['userconfig'] = 'pma__userconfig';
+$cfg['Servers'][$i]['recent'] = 'pma__recent';
+$cfg['Servers'][$i]['favorite'] = 'pma__favorite';
+$cfg['Servers'][$i]['users'] = 'pma__users';
+$cfg['Servers'][$i]['usergroups'] = 'pma__usergroups';
+$cfg['Servers'][$i]['navigationhiding'] = 'pma__navigationhiding';
+$cfg['Servers'][$i]['savedsearches'] = 'pma__savedsearches';
+$cfg['Servers'][$i]['central_columns'] = 'pma__central_columns';
+$cfg['Servers'][$i]['designer_settings'] = 'pma__designer_settings';
+$cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
+/**
+ * Second server - if you have a second server
+ * Just copy+paste if you have more MySQL servers you want to add to PHPMyAdmin
+ */
+$i++;
+$cfg['Servers'][$i]['auth_type'] = 'cookie';
+$cfg['Servers'][$i]['host'] = 'HOSTNAME';
+$cfg['Servers'][$i]['connect_type'] = 'tcp';
+$cfg['Servers'][$i]['ssl'] = true;
+$cfg['Servers'][$i]['ssl_ca'] = '/etc/ssl/certs/IdenTrust_R3.pem';
+$cfg['Servers'][$i]['ssl_ca_path'] = '/etc/ssl/certs/';
+$cfg['Servers'][$i]['compress'] = true;
+$cfg['Servers'][$i]['AllowNoPassword'] = false;
+$cfg['Servers'][$i]['verbose'] = 'NAME_YOUR_MYSQL_SERVER_SO_IT_IS_EASILY_IDENTIFIABLE';
+$cfg['Servers'][$i]['controluser'] = 'phpmyadmin';
+$cfg['Servers'][$i]['controlpass'] = 'PHPMYADMIN_USER_PASSWORD';
+$cfg['Servers'][$i]['pmadb'] = 'phpmyadmin';
+$cfg['Servers'][$i]['bookmarktable'] = 'pma__bookmark';
+$cfg['Servers'][$i]['relation'] = 'pma__relation';
+$cfg['Servers'][$i]['table_info'] = 'pma__table_info';
+$cfg['Servers'][$i]['table_coords'] = 'pma__table_coords';
+$cfg['Servers'][$i]['pdf_pages'] = 'pma__pdf_pages';
+$cfg['Servers'][$i]['column_info'] = 'pma__column_info';
+$cfg['Servers'][$i]['history'] = 'pma__history';
+$cfg['Servers'][$i]['table_uiprefs'] = 'pma__table_uiprefs';
+$cfg['Servers'][$i]['tracking'] = 'pma__tracking';
+$cfg['Servers'][$i]['userconfig'] = 'pma__userconfig';
+$cfg['Servers'][$i]['recent'] = 'pma__recent';
+$cfg['Servers'][$i]['favorite'] = 'pma__favorite';
+$cfg['Servers'][$i]['users'] = 'pma__users';
+$cfg['Servers'][$i]['usergroups'] = 'pma__usergroups';
+$cfg['Servers'][$i]['navigationhiding'] = 'pma__navigationhiding';
+$cfg['Servers'][$i]['savedsearches'] = 'pma__savedsearches';
+$cfg['Servers'][$i]['central_columns'] = 'pma__central_columns';
+$cfg['Servers'][$i]['designer_settings'] = 'pma__designer_settings';
+$cfg['Servers'][$i]['export_templates'] = 'pma__export_templates';
+
+$cfg['CaptchaLoginPublicKey'] = 'GOOGLE_RECAPTCHA_PUBLIC_KEY';
+$cfg['CaptchaLoginPrivateKey'] = 'GOOGLE_RECAPTCHA_PRIVATE_KEY';
+
+$cfg['MaxRows'] = 50;
+
+$cfg['DefaultLang'] = 'en';
+
+$cfg['SendErrorReports'] = 'never';
+```
+```
+cp /etc/phpmyadmin/sql/create_tables.sql /root/create_tables.sql
+```
+Login to MySQL
+```
+mysql -u root -p
+```
+```
+source /root/create_tables.sql
+exit;
+```
+```
+reboot now
+```
+IF PHPMYADMIN VERSION IS BELOW 5.0:  
+Install PHPMyAdmin theme: Fallen (Latest for PHPMyAdmin version installed) in /usr/share/phpmyadmin/themes  
+
+### 5. Final - Login to PHPMyAdmin and configure the settings below
+
+PHPMyAdmin settings:  
+	Features:
+		General:
+			Version check: true
+			Send error reports: Never send error reports
+		Databases:
+			Hide databases: (information_schema|mysql|performance_schema|phpmyadmin|sys)$
+		Page titles:
+			Default title: PHPMyAdmin - COMPANY_NAME
+			Table: @DATABASE@ / @TABLE@ | PHPMyAdmin - COMPANY_NAME
+			Database: @DATABASE@ | PHPMyAdmin - COMPANY_NAME
+			Server: PHPMyAdmin - COMPANY_NAME
+		Warnings:
+			Server/library difference warning: true
+			Missing phpMyAdmin configuration storage tables: true
+			Suhosin warning: true
+			Login cookie validity warning: true
+			MySQL reserved word warning: true
+	Navigation panel:
+		Navigation panel: 
+			Display logo: false
+
+Run this command in PHPMyAdmin SQL:
+```
+uninstall plugin validate_password;
+```
+DONE!
+
+You can make PHPMyAdmin more secure by "deny all" OR limiting what IP addresses can view web directories /setup/ /libraries/ /templates/ /tmp/ /vendor/ /sql/ /examples/ /docs/
+
+You can make MySQL more secure by limiting user account access to certain IP addresses
+
+### To setup MySQL database backup script
+If you're using Percona Server for MySQL 8, use Percona XtraBackup  
+Install lftp and Percona XtraBackup
+```
+apt-get install lftp percona-xtrabackup-80 -y
+```
+Fetch mysql_backup_percona.sh from GitHub and copy it to /home/backup_databases.sh  
+Make sure backup_databases.sh is executable  
+```
+chmod 770 /home/backup_databases.sh
+```
+Setup crontab to run backup script every 12 hours  
+```
+crontab -e
+```
+```
+0 */12 * * * /home/backup_databases.sh
+```
+If you're using normal MySQL 8  
+Make sure lftp is installed..it should be already installed if you followed INITIAL SETUP.TXT
+```
+apt-get install lftp -y
+```
+Fetch mysql_backup.sh from GitHub and copy it to /home/backup_databases.sh  
+Make sure backup_databases.sh is executable  
+```
+chmod 770 /home/backup_databases.sh
+```
+Setup crontab to run backup script every 12 hours  
+```
+crontab -e
+```
+```
+0 */12 * * * /home/backup_databases.sh
+```
+### To restore a backup from Percona XtraBackup
+Restore a full backup - MySQL must be shut down to do this  
+```
+systemctl stop mysql
+xtrabackup --prepare --target-dir=/path/to/backup/you/want/to/restore
+rm -r /var/lib/mysql/*
+xtrabackup --copy-back --target-dir=/path/to/backup/you/want/to/restore
+chown -R mysql:mysql /var/lib/mysql
+systemctl start mysql
+```
+Done, backup restored
+
+Restore a single table
+```
+xtrabackup --prepare --export --target-dir=/path/to/backup/you/want/to/restore
+```
+In MySQL run:
+```
+ALTER TABLE <database>.<table> DISCARD TABLESPACE;
+```
+After you've done that, copy the files in the table directory from the prepared/exported backup to /var/lib/mysql/<database>/<table>
+```
+ALTER TABLE <database>.<table> IMPORT TABLESPACE;
+```
+Done, you should now be able to see the data in mysql
+
+To create phpmyadmin user but limited by IP:
+```
+CREATE USER 'phpmyadmin'@'PHPMYADMIN_IP' IDENTIFIED WITH mysql_native_password BY 'PHPMYADMIN_PASSWORD';
+GRANT USAGE ON *.* TO 'phpmyadmin'@'PHPMYADMIN_IP';
+GRANT ALL PRIVILEGES ON  `phpmyadmin`.* TO 'phpmyadmin'@'PHPMYADMIN_IP';
+```
+### Troubleshooting:
+https://stackoverflow.com/questions/11506224/connection-for-controluser-as-defined-in-your-configuration-failed-with-phpmya  
+https://github.com/phpmyadmin/phpmyadmin/issues/14217  
+
+
+
+
+
+If you need to reset MySQL root@localhost user:  
+Add `skip-grant-tables` to bottom of [mysqld] section in /etc/mysql/mysql.cnf  
+Restart MySQL server  
+```
+systemctl mysql restart
+```
+WARNING: MySQL root no longer has a password!  
+Enter MySQL terminal  
+```
+mysql
+```
+Delete root user:  
+```
+DELETE FROM mysql.user WHERE  user = 'root' AND host = 'localhost';
+```
+Recreate root user:  
+```
+INSERT INTO mysql.user SET User = 'root', Host = 'localhost', Select_priv = 'y',Insert_priv = 'y',Update_priv = 'y',Delete_priv = 'y',Create_priv = 'y',Drop_priv = 'y',Reload_priv = 'y',Shutdown_priv = 'y',Process_priv = 'y',File_priv = 'y',Grant_priv = 'y',References_priv = 'y',Index_priv = 'y',Alter_priv = 'y',Show_db_priv = 'y',Super_priv = 'y',Create_tmp_table_priv = 'y',Lock_tables_priv = 'y',Execute_priv = 'y',Repl_slave_priv = 'y',Repl_client_priv = 'y',Create_view_priv = 'y',Show_view_priv = 'y',Create_routine_priv = 'y',Alter_routine_priv = 'y',Create_user_priv = 'y',Event_priv = 'y',Trigger_priv = 'y',ssl_cipher = '',x509_issuer = '',x509_subject = '',Create_tablespace_priv = 'y';
+```
+Set new root password:  
+```
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'NEW_ROOT_PASSWORD';
+```
+Exit MySQL terminal
+```
+exit;
+```
+Remove `skip-grant-tables` from the [mysqld] section in /etc/mysql/mysql.cnf  
+Restart MySQL server  
+```
+systemctl mysql restart
+```
+The root user will now use your new password
+
+
+Change users auth plugin from `auth_socket` to `mysql_native_password`  
+```
+ALTER USER 'USER'@'%' IDENTIFIED WITH mysql_native_password BY 'PASSWORD';
+```
+If you get `_gateway` not allowed to connect to this MySQL server  
+```
+RENAME USER 'root'@'localhost' TO 'root'@'%';
+```

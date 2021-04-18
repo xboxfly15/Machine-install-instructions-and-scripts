@@ -1,0 +1,30 @@
+---
+---
+```bash
+bash <(curl -Ss https://www.directadmin.com/setup.sh)
+```
+
+Say yes to required packages  
+Enter client ID - found under User ID at https://www.directadmin.com/clients/account.php  
+Enter license ID - found under Lisense ID at https://www.directadmin.com/clients/  
+Press enter when asked for hostname as it will use the current system hostname  
+Make sure the IP address & OS match what the system is and what's on the lisense
+
+Select nginx when asked what webserver to use  
+Select no when asked to select a MySQL database server  
+Select pureftpd when asked to select a FTP server  
+Select PHP 7.4 when asked to select a default PHP version  
+Select php-fpm when asked to select a default PHP mode  
+Select no when asked if you want a second instance of PHP installed  
+Select yes when asked if you would like to use ioncube  
+Select no when asked if you would like to use opcache  
+Select no when asked if you would like to use Zend Guard Loader  
+Select no when asked if you would like CustomBuild to manage Exim installation  
+Select no when asked if you would like CustomBuild to manage Dovecot installation  
+Select no when asked if you would like CustomBuild to manage phpMyAdmin installation  
+Select no when asked if you would like CustomBuild to manage SqurrelMail installation  
+Select no when asked if you would like CustomBuild to manage RoundCube installation  
+Select yes when asked if you would like the default settings of apache 2.4 and php 7.4 php-fpm  
+Select yes when asked if you would like to search for the fastest download mirror  
+
+Finished installing, now go to http://<hostname>:2222/ and use the admin login provided, remember to change <hostname> with the system hostname or IP address
