@@ -12,7 +12,7 @@ mkdir -p $localstorage/$now
 echo 'Created folder, deleting old backups'
 
 [ -z "${localstorage:-}" ]
-[ -z "${deleteolderthanxdays:-}" ]
+[ -z "${keepxdaysofbackups:-}" ]
 find "$localstorage"/ -maxdepth 1 -type d -mmin +$((60*24*("$keepxdaysofbackups"-1))) | xargs rm -rf --preserve-root
 
 echo 'Finished deleting old backups, starting dump'
