@@ -1,9 +1,9 @@
 #!/bin/sh
 #MySQL local+external FTP backup script
-#Last update 2021/03/29
+#Last update 2022/03/14
 #Made by xboxfly15
 now="$(date +%a_%d-%b-%Y)/$(date +%I%p-%Z)"
-deleteolderthanxdays=5
+keepxdaysofbackups=5
 localstorage="PATH_TO_STORE_BACKUPS_LOCALLY"
 mysqluser="MYSQL_USER"
 mysqlpassword="MYSQL_PASSWORD"
@@ -12,8 +12,8 @@ mkdir -p $localstorage/$now
 echo 'Created folder, deleting old backups'
 
 [ -z "${localstorage:-}" ]
-[ -z "${deleteolderthanxdays:-}" ]
-find "$localstorage"/ -maxdepth 1 -type d -mtime +"$deleteolderthanxdays" | xargs rm -rf --preserve-root
+[ -z "${keepxdaysofbackups:-}" ]
+find "$localstorage"/ -maxdepth 1 -type d -mmin +$((60*24*("$keepxdaysofbackups"-1))) | xargs rm -rf --preserve-root
 
 echo 'Finished deleting old backups, starting dump'
 
