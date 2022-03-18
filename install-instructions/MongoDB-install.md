@@ -1,7 +1,7 @@
 ---
 title: MongoDB Install
 ---
-###### UPDATED 2020.07.01
+###### UPDATED 2022.03.17
 ___
 ## Ubuntu 20.04:
 Install certbot for MongoDB SSL  
@@ -84,10 +84,10 @@ sudo systemctl daemon-reload
 sudo systemctl start disable-transparent-huge-pages
 sudo systemctl enable disable-transparent-huge-pages
 ```
-Install MongoDB 4.4 via tar, extract, move the executables to /usr/bin, create new user for mongodb and set file permissions to directories/files that MongoDB will use  
+Install MongoDB 5.0.6 via tar, extract, move the executables to /usr/bin, create new user for mongodb and set file permissions to directories/files that MongoDB will use  
 ```
 sudo apt install libcurl4 openssl
-wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-4.4.0.tgz
+wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-5.0.6.tgz
 tar -zxvf mongodb-linux-*.tgz
 sudo cp mongodb-linux-*/bin/* /usr/local/bin/
 sudo rm -R mongodb-linux-*
@@ -261,7 +261,7 @@ Useful website to learn MongoDB commands: https://docs.mongodb.com/manual/tutori
 
 I used these sites to research and make this instruction, credit to them  
 https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu-tarball/  
-https://docs.mongodb.com/manual/release-notes/4.4-upgrade-standalone/  
+https://docs.mongodb.com/manual/release-notes/5.0-upgrade-standalone/  
 https://docs.mongodb.com/manual/reference/program/mongod/  
 https://docs.mongodb.com/manual/tutorial/  
 https://docs.mongodb.com/manual/storage/  

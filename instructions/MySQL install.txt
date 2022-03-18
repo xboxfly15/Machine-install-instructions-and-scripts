@@ -1,14 +1,12 @@
-// UPDATED 2020.07.01
+// UPDATED 2022.03.18
 /// Ubuntu:
 /// If you're installing PHPMyAdmin, install Nginx and PHP - REFER TO NGINX INSTALL.TXT IF UNSURE 
 
 /// 1. If you're installing normal MySQL 8, install MySQL 8
 cd ~
 // Visit https://dev.mysql.com/downloads/repo/apt/ and get latest version
-// At the time of writing 0.8.15-1 is the latest
-curl -OL https://dev.mysql.com/get/mysql-apt-config_0.8.15-1_all.deb
-md5sum mysql-apt-config_0.8.15-1_all.deb
-// Make sure the output of md5sum is 4126e44e0867531a4724ab0c21d1d645
+// At the time of writing 0.8.22-1 is the latest
+curl -OL https://dev.mysql.com/get/mysql-apt-config_0.8.22-1_all.deb
 sudo dpkg -i mysql-apt-config*
 // Make sure MySQL server and tools are selected with latest version
 sudo apt update
@@ -18,8 +16,6 @@ sudo apt install mysql-server -y
 /// 1. If you're installing Percona Server for MySQL 8, install Percona Server for MySQL 8
 sudo apt install gnupg2 -y
 wget https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb
-md5sum percona-release_latest.$(lsb_release -sc)_all.deb
-// Make sure the output of md5sum is dd651f25a3aebbba7c36ca55278d00a3
 sudo dpkg -i percona-release_latest.$(lsb_release -sc)_all.deb
 sudo percona-release setup ps80
 sudo apt update
@@ -171,9 +167,9 @@ mv phpMyAdmin-5.0.2-english/* /etc/phpmyadmin/
 rm -R phpMyAdmin-*
 Set www-data folder owner for /etc/phpmyadmin/ - REFER TO NGINX INSTALL IF UNSURE
 
-// Add Let's Encrypt R3 Cross-signed certificate
-curl https://letsencrypt.org/certs/lets-encrypt-r3-cross-signed.pem > /etc/ssl/certs/IdenTrust_R3.pem
-chmod 777 /etc/ssl/certs/IdenTrust_R3.pem
+// Add Let's Encrypt X2 Cross-signed certificate
+curl https://letsencrypt.org/certs/isrg-root-x2-cross-signed.pem > /etc/ssl/certs/ISRG_X2.pem
+chmod 777 /etc/ssl/certs/SRG_X2.pem
 
 // Setup phpmyadmin nginx website file & upload/install SSL
 // Enable your PHPMyAdmiin site in Nginx - REFER TO NGINX INSTALL IF UNSURE
@@ -224,7 +220,7 @@ $cfg['Servers'][$i]['auth_type'] = 'cookie';
 $cfg['Servers'][$i]['host'] = 'HOSTNAME';
 $cfg['Servers'][$i]['connect_type'] = 'tcp';
 $cfg['Servers'][$i]['ssl'] = true;
-$cfg['Servers'][$i]['ssl_ca'] = '/etc/ssl/certs/IdenTrust_R3.pem';
+$cfg['Servers'][$i]['ssl_ca'] = '/etc/ssl/certs/SRG_X2.pem';
 $cfg['Servers'][$i]['ssl_ca_path'] = '/etc/ssl/certs/';
 $cfg['Servers'][$i]['compress'] = true;
 $cfg['Servers'][$i]['AllowNoPassword'] = false;

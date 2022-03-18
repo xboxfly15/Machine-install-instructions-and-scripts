@@ -1,19 +1,21 @@
 sudo apt-get install -y adduser libfontconfig1
-wget https://dl.grafana.com/oss/release/grafana_7.4.0_amd64.deb
-// Check md5sum equals 48193eb480d8c9808eb632a2d6496615
-sudo dpkg -i grafana_7.4.0_amd64.deb
+wget https://dl.grafana.com/oss/release/grafana_8.4.4_amd64.deb
+// Check md5sum equals 773367f803e7f6c5d094a41684ec3c63
+sudo dpkg -i grafana_8.4.4_amd64.deb
 sudo systemctl daemon-reload
 sudo systemctl start grafana-server
 
 Go to :3000, login with default credentials admin:admin and set new password
 
-grafana-cli plugins install cloudflare-app
+grafana-cli plugins install valiton-mongodbatlas-datasource
 grafana-cli plugins install grafana-clock-panel
 grafana-cli plugins install cloudspout-button-panel
 grafana-cli plugins install flant-statusmap-panel
-grafana-cli --pluginUrl https://packages.hiveeyes.org/grafana/grafana-map-panel/grafana-map-panel-0.9.0.zip plugins install grafana-map-panel
+
 grafana-cli --pluginUrl https://github.com/yesoreyeram/grafana-infinity-datasource/archive/master.zip plugins install yesoreyeram-infinity-datasource
 grafana-cli --pluginUrl https://github.com/yesoreyeram/grafana-newrelic-datasource/archive/master.zip plugins install yesoreyeram-newrelic-datasource
+grafana-cli --pluginUrl https://github.com/valiton/grafana-mongodb-atlas-datasource/archive/master.zip plugins install valiton-mongodbatlas-datasource
+
 service grafana-server restart
 
 // Setup SSL

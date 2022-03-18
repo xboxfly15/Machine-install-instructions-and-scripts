@@ -1,7 +1,7 @@
 ---
 title: NodeJS Install
 ---
-###### UPDATED 10.12.2020
+###### UPDATED 2022.03.18
 ___
 Create new user just for running NodeJS, give it a nice strong password  
 ```
@@ -9,9 +9,9 @@ adduser nodejs
 usermod -aG sudo nodejs
 su nodejs
 ```
-Download and install NodeJS 14  
+Download and install NodeJS 17  
 ```
-curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_17.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
 mkdir /home/nodejs/projects

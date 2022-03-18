@@ -1,7 +1,7 @@
 ---
 title: MySQL Install
 ---
-###### UPDATED 2020.07.01
+###### UPDATED 2022.03.18
 ___
 ### Ubuntu:
 ### If you're installing PHPMyAdmin, install Nginx and PHP - REFER TO NGINX INSTALL.TXT IF UNSURE 
@@ -11,9 +11,9 @@ ___
 cd ~
 ```
 Visit https://dev.mysql.com/downloads/repo/apt/ and get latest version  
-At the time of writing 0.8.15-1 is the latest  
+At the time of writing 0.8.22-1 is the latest  
 ```
-curl -OL https://dev.mysql.com/get/mysql-apt-config_0.8.15-1_all.deb
+curl -OL https://dev.mysql.com/get/mysql-apt-config_0.8.22-1_all.deb
 sudo dpkg -i mysql-apt-config*
 ```
 Make sure MySQL server and tools are selected with latest version

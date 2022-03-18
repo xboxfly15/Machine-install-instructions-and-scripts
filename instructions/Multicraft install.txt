@@ -1,0 +1,29 @@
+cd root
+wget http://www.multicraft.org/download/linux64 -O multicraft.tar.gz
+tar xvzf multicraft.tar.gz
+cd multicraft
+./setup.sh
+
+apt-get install wget apt-transport-https gnupg
+wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | sudo apt-key add -
+echo "deb https://adoptopenjdk.jfrog.io/adoptopenjdk/deb focal main" | sudo tee /etc/apt/sources.list.d/adoptopenjdk.list
+
+apt-get update
+apt-get install adoptopenjdk-8-hotspot-jre
+apt-get install adoptopenjdk-11-hotspot-jre
+update-alternatives --config java
+
+apt-get install quota zip htop
+nano /etc/fstab
+quotacheck -ugm /home
+quotacheck -ugm /
+mount -o remount /
+quotaon -avu
+
+cd /home/minecraft/multicraft/jar/
+chown minecraft:minecraft *
+
+cd /home/minecraft/multicraft/servers/
+/usr/sbin/useradd -c "Multicraft Server 1" -d "/home/minecraft/multicraft/servers/server1" -g "mc1" -s /bin/false "mc1"
+/usr/sbin/groupadd "mc1"
+chown mc1:mc1 server1 -R
