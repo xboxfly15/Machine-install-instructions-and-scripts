@@ -1,6 +1,6 @@
 #!/bin/sh
 #Percona MySQL local+external FTP backup script
-#Last update 2022/03/17
+#Last update 2022/03/20
 #Made by xboxfly15
 date="$(date +%a_%d-%b-%Y)"
 time="$(date +%I%p-%Z)"
@@ -14,7 +14,7 @@ echo 'Created folder, deleting old backups'
 
 [ -z "${localstorage:-}" ]
 [ -z "${keepxdaysofbackups:-}" ]
-find "$localstorage"/ -maxdepth 1 -type d -mmin +$((60*24*"$keepxdaysofbackups")) | xargs rm -rf --preserve-root
+find "$localstorage"/ -maxdepth 1 -type d -mmin +$((60*24*$keepxdaysofbackups)) | xargs rm -rf --preserve-root
 
 echo 'Finished deleting old backups, starting dump'
 
