@@ -1,16 +1,16 @@
 // UPDATED 2022.03.18
 // Create new user just for running NodeJS, give it a nice strong password
 adduser nodejs
-usermod -aG sudo nodejs
-su nodejs
-// Download and install NodeJS 17
 curl -fsSL https://deb.nodesource.com/setup_17.x | sudo -E bash -
 sudo apt-get install -y nodejs
+su nodejs
+// Download and install NodeJS 17
 
 mkdir /home/nodejs/projects
 chmod 0700 /home/nodejs
 chmod 0700 /home/nodejs/projects
 // Put all NodeJS projects/applications in /home/nodejs/projects - everything in that folder must have 0700 and nodejs owner/group
+
 sudo su -
 npm install pm2 -g
 
