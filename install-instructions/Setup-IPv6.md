@@ -7,15 +7,11 @@ The network configuration files are located in /etc/netplan/
 cd /etc/netplan
 ```
 
-Create a file named 51-cloud-init-ipv6.yaml inside of /etc/netplan/  
-```
-touch 51-cloud-init-ipv6.yaml
-```
-Edit the 51-cloud-init-ipv6.yaml file, adding the IPv6 configuration below. Take care to change IPV6_ADDRESS, IPV6_PREFIX and IPV6_GATEWAY to your servers information and also the network interface, if you are not using eth0. You can find the network interface by looking in 50-cloud.init.yaml and seeing what `name:` says.
+Create a file named 51-cloud-init-ipv6.yaml (inside of /etc/netplan/), adding the IPv6 configuration below. Take care to change IPV6_ADDRESS, IPV6_PREFIX and IPV6_GATEWAY to your servers information and also the network interface, if you are not using eth0. You can find the network interface by looking in 50-cloud.init.yaml and seeing what `name:` says.  
 ```  
 nano 51-cloud-init-ipv6.yaml
 ```
-For OVH the IPV6_PREFIX is normally 128 but may be 64 and network interface name is normally ens3.  
+For OVH the IPV6_PREFIX is normally /64 but may be /128 and network interface name is normally ens3.  
 ```
 network:
     version: 2
@@ -26,13 +22,22 @@ network:
               name: eth0
             addresses:
               - "IPV6_ADDRESS/IPV6_PREFIX"
-            gateway6: "IPV6_GATEWAY"
 ```
-If you're using Ubuntu 20.04 add this to the bottom of the file as well  
+Else, If you're using Ubuntu 20.04, add this to the bottom of the file as well  
 ```
             routes:
               - to: "IPV6_GATEWAY"
                 scope: link
+```
+Else, If you're using Ubuntu 22.04 or newer, add this to the bottom of the file as well  
+```
+            routes:
+              - via: default
+                to: "IPV6_GATEWAY"
+```
+Else, If you're using an older version than Ubuntu 20.04, add this to the bottom of the file as well  
+```
+            gateway6: "IPV6_GATEWAY"
 ```
 
 Test the configuration using this command:  
@@ -43,7 +48,7 @@ If there are no errors, apply it, using the following command:
 ```
 netplan apply
 ```
-Ubuntu DONE, your machine should now be IPv6 accessible  
+Ubuntu DONE, your machine should now be IPv6 accessible, You can test this by running `ping ipv6.google.com`, it it says "Network Unreachable" then the configuration isn't correct.  
 
 ### CentOS:
 The network configuration files are located in /etc/sysconfig/network-scripts/  
