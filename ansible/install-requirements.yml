@@ -1,5 +1,0 @@
-- name: Install requirements
-  ansible.builtin.pip:
-    requirements: './requirements.txt'
-    extra_args: '--user --upgrade'
-  become_user: 'semaphore'

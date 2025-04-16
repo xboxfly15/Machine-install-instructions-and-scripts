@@ -1,0 +1,124 @@
+---
+
+- name: Initial setup
+  hosts: all
+  become: true
+  tasks:
+    - name: Run apt-get update
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Run apt-get upgrade
+      ansible.builtin.apt:
+        upgrade: yes
+
+    - name: Set hostname
+      ansible.builtin.hostname:
+        name: "{{ system_hostname }}"
+
+    - name: Set timezone
+      ansible.builtin.command:
+        cmd: timedatectl set-timezone "{{ system_timezone }}"
+      register: timezone_result
+      changed_when: timezone_result.rc == 0
+      
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - zip
+          - unzip
+          - lftp
+          - fail2ban
+        state: present
+
+    - name: Set up fail2ban
+      ansible.builtin.lineinfile:
+        dest: /etc/fail2ban/jail.conf
+        regexp: '^#ignoreip = 127.0.0.1/8 ::1$'
+        line: 'ignoreip = {{ ignored_ips }} 127.0.0.1/8 ::1'
+        state: present
+
+    - name: Restart fail2ban
+      ansible.builtin.service:
+        name: fail2ban
+        state: restarted
+
+    - name: Disable sudo password for SFTP
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/{{ system_user }}
+        content: "{{ system_user }} ALL=NOPASSWD: /usr/lib/openssh/sftp-server"
+        mode: 0440
+
+    - name: Create system user
+      ansible.builtin.user:
+        name: "{{ system_user }}"
+        password: "{{ system_user_password | password_hash('sha512') }}"
+        append: yes
+        groups: sudo
+        create_home: yes
+        state: present
+
+    - name: Create SSH directory for system user
+      ansible.builtin.file:
+        dest: /home/{{ system_user }}/.ssh
+        owner: "{{ system_user }}"
+        group: "{{ system_user }}"
+        mode: 0700
+        state: directory
+
+    - name: Create SSH authorized keys file for system user
+      ansible.builtin.file:
+        dest: /home/{{ system_user }}/.ssh/authorized_keys
+        owner: "{{ system_user }}"
+        group: "{{ system_user }}"
+        mode: 0600
+        state: touch
+
+    - name: Add SSH public key to authorized keys
+      ansible.builtin.copy:
+        dest: /home/{{ system_user }}/.ssh/authorized_keys
+        content: "{{ ssh_public_key }}"
+        owner: "{{ system_user }}"
+        group: "{{ system_user }}"
+        mode: 0600
+        state: present
+
+    - name: Disable SSH password authentication
+      ansible.builtin.lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: '^[#]PasswordAuthentication yes$'
+        line: 'PasswordAuthentication no'
+        state: present
+    
+    - name: Disable SSH root login
+      ansible.builtin.lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin [^yes|prohibit-password]$'
+        line: 'PermitRootLogin no'
+        state: present
+
+    - name: Deny SSH access to root and ubuntu
+      ansible.builtin.lineinfile:
+        dest: /etc/ssh/sshd_config
+        line: 'DenyUsers root ubuntu'
+        insertafter: EOF
+        state: present
+
+    - name: Restart SSH service
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
+
+    - name: Install New Relic Infra agent
+      ansible.builtin.command:
+        cmd: curl -Ls https://download.newrelic.com/install/newrelic-cli/scripts/install.sh | bash
+      register: newrelic_install
+      changed_when: newrelic_install.rc == 0
+      when: newrelic_install.rc != 0
+
+    - name: Configure New Relic Infra agent
+      ansible.builtin.command:
+        cmd: NEW_RELIC_API_KEY={{ newrelic_user_key }} NEW_RELIC_ACCOUNT_ID={{ newrelic_account_id }} NEW_RELIC_REGION=EU /usr/local/bin/newrelic install --assumeYes
+      register: newrelic_configure
+      changed_when: newrelic_configure.rc == 0
+      when: newrelic_configure.rc != 0

@@ -1,7 +1,0 @@
-ansible
-# for common jinja-filters
-netaddr
-jmespath
-# for common modules
-requests
-docker

@@ -1,4 +1,4 @@
-// UPDATED 2020.07.01
+// UPDATED 2025.04.18
 /// Ubuntu:
 // Switch to root user
 sudo su
@@ -49,12 +49,10 @@ sudo visudo
 //- end
 
 // Install GalaxyMC monitoring agent
-// Install New Relic monitoring agent, remember to change LICENSE_KEY_HERE with your New Relic account license key
-curl -s https://download.newrelic.com/infrastructure_agent/gpg/newrelic-infra.gpg | sudo apt-key add -
-echo "license_key: LICENSE_KEY_HERE
-enable_process_metrics: true" | sudo tee -a /etc/newrelic-infra.yml
-printf "deb [arch=amd64] https://download.newrelic.com/infrastructure_agent/linux/apt focal main" | sudo tee -a /etc/apt/sources.list.d/newrelic-infra.list
-sudo apt-get update && apt-get install newrelic-infra -y
+// Install New Relic monitoring agent, remember to change the environment variables
+curl -Ls https://download.newrelic.com/install/newrelic-cli/scripts/install.sh | bash
+
+sudo NEW_RELIC_API_KEY="NEW_RELIC_API_KEY" NEW_RELIC_ACCOUNT_ID="NEW_RELIC_ACCOUNT_ID" NEW_RELIC_REGION="NEW_RELIC_REGION" /usr/local/bin/newrelic install -y
 
 // Reboot for good measure
 reboot now

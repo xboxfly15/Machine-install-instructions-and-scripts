@@ -1,3 +1,18 @@
+// UPDATED 2025.04.18
+// Debian - ifupdown2 - static IPv6:
+// The network configuration files are located in /etc/network
+//- Create a file named ipv6.conf (inside of /etc/network/interfaces.d). Take care to change IPV6_ADDRESS, IPV6_PREFIX and IPV6_GATEWAY to your servers information and also the network interface, if you are not using eth0. You can find the network interface by running "ip a"
+nano /etc/network/interfaces.d/ipv6.conf
+  iface eth0 inet6 static
+       address IPV6_ADDRESS
+       netmask IPV6_PREFIX
+       gateway IPV6_GATEWAY
+
+// Apply the changes, using the following command:
+systemctl restart networking
+
+// Debian - ifupdown2 - static IPv6 DONE, your machine should now be IPv6 accessible. You can test this by running "ping ipv6.google.com", it it says "Network Unreachable" then the configuration isn't correct.
+
 // Ubuntu:
 // The network configuration files are located in /etc/netplan/
 cd /etc/netplan
@@ -14,15 +29,15 @@ network:
               name: eth0
             addresses:
               - "IPV6_ADDRESS/IPV6_PREFIX"
-// -Else, If you're using Ubuntu 20.04, add this to the bottom of the file as well
+// -Else, If you're using Ubuntu 20.04, add this to the bottom of the file
             routes:
               - to: "IPV6_GATEWAY"
                 scope: link
-// -Else, If you're using Ubuntu 22.04 or newer, add this to the bottom of the file as well
+// -Or Else, If you're using Ubuntu 22.04 or newer, add this to the bottom of the file
             routes:
               - via: default
                 to: "IPV6_GATEWAY"
-// -Else, If you're using an older version than Ubuntu 20.04, add this to the bottom of the file as well
+// -Or Else, If you're using an older version than Ubuntu 20.04, add this to the bottom of the file
             gateway6: "IPV6_GATEWAY"
 //- END
 
